@@ -20,9 +20,9 @@ export default function TripList() {
   useEffect(() => { loadTrips(); }, []);
 
   const handleDelete = async (id: number) => {
-    if (!confirm("确定删除此行程？")) return;
+    if (!confirm("确要删去此行旅？")) return;
     try { await api.deleteTrip(id); setTrips(prev => prev.filter(t => t.id !== id)); }
-    catch { alert("删除失败"); }
+    catch { alert("删去败"); }
   };
 
   const handleCSVImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -32,10 +32,10 @@ export default function TripList() {
     try {
       const text = await file.text();
       const result: any = await api.importTripsCSV(text);
-      alert(`导入完成: ${result.imported} 条成功${result.errors.length > 0 ? `, ${result.errors.length} 条失败:\n${result.errors.slice(0, 10).join('\n')}` : ""}`);
+      alert(`导入毕: ${result.imported} 条成功${result.errors.length > 0 ? `, ${result.errors.length} 条失败:\n${result.errors.slice(0, 10).join('\n')}` : ""}`);
       loadTrips();
     } catch (err: any) {
-      alert("导入失败: " + err.message);
+      alert("导入败: " + err.message);
     } finally {
       setImporting(false);
       if (fileRef.current) fileRef.current.value = "";
@@ -45,9 +45,9 @@ export default function TripList() {
   const handleSeed = async () => {
     try {
       const result: any = await api.seedData();
-      setSeedMsg(`已初始化 ${result.stations} 个站点, ${result.operators} 个运营商`);
+      setSeedMsg(`已载入 ${result.stations} 个站点, ${result.operators} 个运营商`);
       setTimeout(() => setSeedMsg(""), 4000);
-    } catch { setSeedMsg("初始化失败"); }
+    } catch { setSeedMsg("载入败"); }
   };
 
   const filtered = trips
@@ -76,11 +76,11 @@ export default function TripList() {
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">全部行程</h2>
+          <h2 className="text-2xl font-bold text-gray-900">行旅全录</h2>
           <p className="text-sm text-gray-500 mt-1">{trips.length} 条记录</p>
         </div>
         <div className="flex items-center gap-2">
-          {seedMsg && <span className="text-xs text-emerald-600">{seedMsg}</span>}
+          {seedMsg && <span className="text-xs text-terracotta-500">{seedMsg}</span>}
           <button onClick={handleSeed} className="btn-secondary text-xs" title="初始化车站和运营商数据">
             <Database className="w-3.5 h-3.5" />
             初始化数据
@@ -103,9 +103,9 @@ export default function TripList() {
           {(["all", "train", "flight"] as const).map(f => (
             <button key={f} onClick={() => setFilter(f)}
               className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
-                filter === f ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
+                filter === f ? "bg-terracotta-100 text-terracotta-700 shadow-sm" : "text-ink-400 hover:text-ink-700"
               }`}>
-              {f === "all" ? "全部" : f === "train" ? "火车" : "航班"}
+              {f === "all" ? "全部" : f === "train" ? "铁轨" : "云路"}
             </button>
           ))}
         </div>
@@ -122,7 +122,7 @@ export default function TripList() {
         </div>
       ) : filtered.length === 0 ? (
         <div className="card p-12 text-center">
-          <p className="text-gray-500">没有找到匹配的行程</p>
+          <p className="text-ink-400">未见匹配之行旅</p>
         </div>
       ) : (
         <div className="space-y-2">
@@ -130,7 +130,7 @@ export default function TripList() {
             <div key={trip.id} className="card p-4 hover:shadow-md transition-shadow group">
               <div className="flex items-start gap-4">
                 <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                  trip.type === "train" ? "bg-rail-50 text-rail-600" : "bg-air-50 text-air-500"
+                  trip.type === "train" ? "bg-terracotta-100 text-terracotta-600" : "bg-terracotta-50 text-terracotta-500"
                 }`}>
                   {trip.type === "train" ? <Train className="w-5 h-5" /> : <Plane className="w-5 h-5" />}
                 </div>
@@ -138,9 +138,9 @@ export default function TripList() {
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-semibold text-gray-900">{trip.trainFlightNumber}</span>
                     <span className="text-xs px-1.5 py-0.5 rounded bg-gray-100 text-gray-500">
-                      {trip.type === "train" ? "火车" : "航班"}
+                      {trip.type === "train" ? "铁轨" : "云路"}
                     </span>
-                    <span className="text-sm text-gray-500">{trip.operator}</span>
+                    <span className="text-sm text-ink-400">{trip.operator}</span>
                   </div>
                   <div className="mt-1.5 flex items-center gap-2 text-sm text-gray-600 flex-wrap">
                     <span className="font-medium">{trip.departureStation?.name || "?"}</span>
@@ -176,12 +176,12 @@ export default function TripList() {
                 </div>
                 <div className="flex flex-col items-end gap-2 flex-shrink-0">
                   {trip.cost && (
-                    <span className="text-sm font-semibold text-gray-900">
+                    <span className="text-sm font-semibold text-ink-800">
                       {trip.currency || ""} {trip.cost.toLocaleString()}
                     </span>
                   )}
                   <button onClick={() => handleDelete(trip.id)}
-                    className="opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 hover:text-red-500">
+                    className="opacity-0 group-hover:opacity-100 transition-opacity text-ink-300 hover:text-terracotta-500">
                     <Trash2 className="w-4 h-4" />
                   </button>
                 </div>

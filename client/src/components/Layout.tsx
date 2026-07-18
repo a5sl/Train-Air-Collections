@@ -4,9 +4,9 @@ import { Train, Plane, List, MapPin, LayoutDashboard } from "lucide-react";
 
 const navItems = [
   { to: "/", icon: LayoutDashboard, label: "概览" },
-  { to: "/add", icon: List, label: "新记录" },
-  { to: "/trips", icon: List, label: "全部行程" },
-  { to: "/map", icon: MapPin, label: "地图" },
+  { to: "/add", icon: List, label: "录程" },
+  { to: "/trips", icon: List, label: "行旅全录" },
+  { to: "/map", icon: MapPin, label: "舆图" },
 ];
 
 export default function Layout() {
@@ -15,15 +15,15 @@ export default function Layout() {
   return (
     <div className="min-h-screen flex flex-col">
       {/* Header */}
-      <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-gray-200">
+      <header className="sticky top-0 z-40 bg-parchment-50/90 backdrop-blur-md border-b border-terracotta-200">
         <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-0.5">
-              <Train className="w-5 h-5 text-rail-600" />
-              <Plane className="w-5 h-5 text-air-500" />
+              <Train className="w-5 h-5 text-terracotta-500" />
+              <Plane className="w-5 h-5 text-terracotta-400" />
             </div>
-            <h1 className="text-lg font-bold text-gray-900 tracking-tight">
-              Train-Air Collections
+            <h1 className="text-lg font-bold text-ink-800 tracking-tight">
+              行旅录
             </h1>
           </div>
         </div>
@@ -35,9 +35,9 @@ export default function Layout() {
       </main>
 
       {/* Bottom navigation (mobile-first) */}
-      <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white/80 backdrop-blur-md border-t border-gray-200 md:static md:border-t-0 md:bg-transparent md:backdrop-blur-none">
+      <nav className="fixed bottom-0 left-0 right-0 z-40 bg-parchment-50/90 backdrop-blur-md border-t border-terracotta-200 md:static md:border-t-0 md:bg-transparent md:backdrop-blur-none">
         <div className="max-w-6xl mx-auto px-2 md:px-4">
-          <div className="flex justify-around md:justify-start md:gap-1 py-1.5 md:py-0 md:fixed md:bottom-6 md:left-1/2 md:-translate-x-1/2 md:bg-white md:rounded-2xl md:shadow-lg md:border md:border-gray-200 md:px-2 md:py-1.5">
+          <div className="flex justify-around md:justify-start md:gap-1 py-1.5 md:py-0 md:fixed md:bottom-6 md:left-1/2 md:-translate-x-1/2 md:bg-parchment-50 md:rounded-2xl md:shadow-lg md:border md:border-terracotta-200 md:px-2 md:py-1.5">
             {navItems.map(({ to, icon: Icon, label }) => {
               const active = to === "/" ? location.pathname === "/" : location.pathname.startsWith(to);
               return (
@@ -46,8 +46,8 @@ export default function Layout() {
                   to={to}
                   className={`flex flex-col md:flex-row items-center gap-1 md:gap-2 px-3 py-2 rounded-xl text-xs md:text-sm font-medium transition-all
                     ${active
-                      ? "text-rail-700 bg-rail-50 md:bg-rail-100"
-                      : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+                      ? "text-terracotta-700 bg-terracotta-100 md:bg-terracotta-100"
+                      : "text-ink-400 hover:text-ink-700 hover:bg-parchment-100"
                     }`}
                 >
                   <Icon className="w-5 h-5" />

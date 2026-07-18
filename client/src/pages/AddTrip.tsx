@@ -289,8 +289,8 @@ export default function AddTrip() {
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <div>
-        <h2 className="text-2xl font-bold text-gray-900">新增行程</h2>
-        <p className="text-sm text-gray-500 mt-1">记录一次火车或飞行旅程</p>
+        <h2 className="text-2xl font-bold text-gray-900">录新程</h2>
+        <p className="text-sm text-gray-500 mt-1">录下一次铁轨或云路之旅</p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-5">
@@ -306,13 +306,13 @@ export default function AddTrip() {
                 className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg border-2 text-sm font-medium transition-all ${
                   form.type === t
                     ? t === "train"
-                      ? "border-rail-500 bg-rail-50 text-rail-700"
-                      : "border-air-500 bg-air-50 text-air-700"
-                    : "border-gray-200 bg-white text-gray-600 hover:border-gray-300"
+                      ? "border-terracotta-500 bg-terracotta-100 text-terracotta-700"
+                      : "border-terracotta-400 bg-terracotta-50 text-terracotta-600"
+                    : "border-ink-200 bg-parchment-50 text-ink-500 hover:border-terracotta-300"
                 }`}
               >
                 {t === "train" ? <Train className="w-4 h-4" /> : <Plane className="w-4 h-4" />}
-                {t === "train" ? "火车" : "航班"}
+                {t === "train" ? "铁轨" : "云路"}
               </button>
             ))}
           </div>
@@ -320,7 +320,7 @@ export default function AddTrip() {
 
         {/* Required fields section */}
         <div className="card p-5 space-y-4">
-          <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">必填信息</h3>
+          <h3 className="text-xs font-semibold text-ink-400 uppercase tracking-wider">必填</h3>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
@@ -408,7 +408,7 @@ export default function AddTrip() {
             {form.type === "train" ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="label-text">列车名</label>
+                  <label className="label-text">车名</label>
                   <input className="input-field" placeholder="如: 和谐号、复兴号" value={form.trainName}
                     onChange={e => update({ trainName: e.target.value })} />
                 </div>
@@ -444,7 +444,7 @@ export default function AddTrip() {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="label-text">花费</label>
+                <label className="label-text">盘缠</label>
                 <input type="number" className="input-field" placeholder="如: 553" value={form.cost}
                   onChange={e => update({ cost: e.target.value ? parseFloat(e.target.value) : "" })} />
               </div>
@@ -463,18 +463,18 @@ export default function AddTrip() {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="label-text">座位号</label>
+                <label className="label-text">座号</label>
                 <input className="input-field" placeholder="如: 12A" value={form.seatNumber}
                   onChange={e => update({ seatNumber: e.target.value })} />
               </div>
               <div>
-                <label className="label-text">席位等级</label>
+                <label className="label-text">席等</label>
                 <input className="input-field" placeholder="如: 二等座 / 经济舱" value={form.seatClass}
                   onChange={e => update({ seatClass: e.target.value })} />
               </div>
             </div>
             <div>
-              <label className="label-text">备注</label>
+              <label className="label-text">附记</label>
               <textarea className="input-field" rows={2} placeholder="任何你想记录的信息..." value={form.notes}
                 onChange={e => update({ notes: e.target.value })} />
             </div>

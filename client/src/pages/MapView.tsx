@@ -114,16 +114,16 @@ export default function MapView() {
     <div className="space-y-4 h-[calc(100vh-12rem)] flex flex-col">
       <div className="flex items-center justify-between flex-shrink-0">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">行程地图</h2>
-          <p className="text-sm text-gray-500 mt-1">
-            {trips.filter((t) => t.departureStation?.latitude).length} 条可显示的行程
+          <h2 className="text-2xl font-bold text-gray-900">行旅舆图</h2>
+          <p className="text-sm text-ink-400 mt-1">
+            {trips.filter((t) => t.departureStation?.latitude).length} 条可示之行旅
           </p>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={() => { setShowAll(true); setSelectedTrip(null); }}
             className={`text-xs font-medium px-3 py-1.5 rounded-lg transition-colors ${
-              showAll ? "bg-rail-100 text-rail-700" : "text-gray-500 hover:bg-gray-100"
+              showAll ? "bg-terracotta-100 text-terracotta-700" : "text-ink-400 hover:bg-parchment-200"
             }`}
           >
             <Layers className="w-3.5 h-3.5 inline mr-1" />
@@ -141,8 +141,8 @@ export default function MapView() {
               onClick={() => setSelectedTrip(t.id === selectedTrip ? null : t.id)}
               className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
                 t.id === selectedTrip
-                  ? t.type === "train" ? "bg-rail-100 text-rail-700" : "bg-air-100 text-air-700"
-                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                  ? t.type === "train" ? "bg-terracotta-100 text-terracotta-700" : "bg-terracotta-50 text-terracotta-600"
+                  : "bg-parchment-200 text-ink-500 hover:bg-parchment-300"
               }`}
             >
               {t.trainFlightNumber}: {t.departureStation?.name}→{t.arrivalStation?.name}
@@ -154,7 +154,7 @@ export default function MapView() {
       {/* Map */}
       {loading ? (
         <div className="flex-1 card flex items-center justify-center">
-          <p className="text-gray-400">加载地图中...</p>
+          <p className="text-ink-400">加载地图中...</p>
         </div>
       ) : (
         <div className="flex-1 card overflow-hidden">
@@ -195,7 +195,7 @@ export default function MapView() {
                 key={`route-${trip.id}-${i}`}
                 positions={positions}
                 pathOptions={{
-                  color: trip.type === "train" ? "#4263eb" : "#12b886",
+                  color: trip.type === "train" ? "#b47157" : "#ca947a",
                   weight: 3,
                   opacity: 0.7,
                   dashArray: trip.type === "flight" ? "8 4" : undefined,
@@ -209,11 +209,11 @@ export default function MapView() {
                     <p className="text-gray-600">
                       {trip.departureStation?.name} → {trip.arrivalStation?.name}
                     </p>
-                    <p className="text-gray-400 text-xs">
+                    <p className="text-ink-400 text-xs">
                       {trip.date} | {trip.operator}
                     </p>
                     {trip.distanceKm && (
-                      <p className="text-gray-400 text-xs">{trip.distanceKm} km</p>
+                      <p className="text-ink-400 text-xs">{trip.distanceKm} km</p>
                     )}
                   </div>
                 </Popup>
@@ -224,13 +224,13 @@ export default function MapView() {
       )}
 
       {/* Legend */}
-      <div className="flex items-center gap-4 text-xs text-gray-500 flex-shrink-0">
+      <div className="flex items-center gap-4 text-xs text-ink-400 flex-shrink-0">
         <div className="flex items-center gap-1.5">
-          <div className="w-3 h-0.5 bg-rail-600 rounded" />
+          <div className="w-3 h-0.5 bg-terracotta-500 rounded" />
           <span>火车</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="w-3 h-0.5 bg-air-500 rounded border-dashed border-air-500" style={{ borderTop: "2px dashed #12b886" }} />
+          <div className="w-3 h-0.5 bg-terracotta-400 rounded border-dashed border-terracotta-400" style={{ borderTop: "2px dashed #12b886" }} />
           <span>航班</span>
         </div>
       </div>
