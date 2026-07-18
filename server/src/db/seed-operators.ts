@@ -1,0 +1,88 @@
+// ==== OPERATORS ====
+export const seedOperators = [
+  // Chinese Railways
+  { name:"中国国家铁路集团有限公司", type:"railway", region:"中国" },
+  { name:"中国铁路北京局集团有限公司", type:"railway", region:"中国" },
+  { name:"中国铁路上海局集团有限公司", type:"railway", region:"中国" },
+  { name:"中国铁路广州局集团有限公司", type:"railway", region:"中国" },
+  { name:"中国铁路成都局集团有限公司", type:"railway", region:"中国" },
+  { name:"中国铁路武汉局集团有限公司", type:"railway", region:"中国" },
+  { name:"中国铁路西安局集团有限公司", type:"railway", region:"中国" },
+  { name:"中国铁路沈阳局集团有限公司", type:"railway", region:"中国" },
+  { name:"中国铁路郑州局集团有限公司", type:"railway", region:"中国" },
+  { name:"中国铁路济南局集团有限公司", type:"railway", region:"中国" },
+  { name:"中国铁路南昌局集团有限公司", type:"railway", region:"中国" },
+  { name:"中国铁路南宁局集团有限公司", type:"railway", region:"中国" },
+  { name:"中国铁路昆明局集团有限公司", type:"railway", region:"中国" },
+  { name:"中国铁路兰州局集团有限公司", type:"railway", region:"中国" },
+  { name:"中国铁路哈尔滨局集团有限公司", type:"railway", region:"中国" },
+  { name:"中国铁路太原局集团有限公司", type:"railway", region:"中国" },
+  { name:"中国铁路呼和浩特局集团有限公司", type:"railway", region:"中国" },
+  { name:"中国铁路乌鲁木齐局集团有限公司", type:"railway", region:"中国" },
+  { name:"中国铁路青藏集团有限公司", type:"railway", region:"中国" },
+  { name:"港铁公司", type:"railway", region:"中国香港" },
+  { name:"台湾铁路管理局", type:"railway", region:"中国台湾" },
+  // Japanese Railways
+  { name:"JR东日本", type:"railway", region:"日本" },
+  { name:"JR西日本", type:"railway", region:"日本" },
+  { name:"JR东海", type:"railway", region:"日本" },
+  { name:"JR九州", type:"railway", region:"日本" },
+  { name:"JR北海道", type:"railway", region:"日本" },
+  // Korean Railways
+  { name:"韩国铁道公社 (KORAIL)", type:"railway", region:"韩国" },
+  // European Railways
+  { name:"SNCF (法国国家铁路)", type:"railway", region:"法国" },
+  { name:"Deutsche Bahn (德国铁路)", type:"railway", region:"德国" },
+  { name:"Trenitalia (意大利铁路)", type:"railway", region:"意大利" },
+  { name:"Renfe (西班牙铁路)", type:"railway", region:"西班牙" },
+  { name:"Eurostar (欧洲之星)", type:"railway", region:"欧洲" },
+  { name:"SBB (瑞士联邦铁路)", type:"railway", region:"瑞士" },
+  { name:"NS (荷兰铁路)", type:"railway", region:"荷兰" },
+  // Other Railways
+  { name:"Amtrak (美国国铁)", type:"railway", region:"美国" },
+  { name:"VIA Rail Canada", type:"railway", region:"加拿大" },
+  { name:"俄罗斯铁路 (RZD)", type:"railway", region:"俄罗斯" },
+  // Chinese Airlines
+  { name:"中国国际航空 (Air China)", type:"airline", region:"中国" },
+  { name:"中国东方航空 (China Eastern)", type:"airline", region:"中国" },
+  { name:"中国南方航空 (China Southern)", type:"airline", region:"中国" },
+  { name:"海南航空 (Hainan Airlines)", type:"airline", region:"中国" },
+  { name:"深圳航空 (Shenzhen Airlines)", type:"airline", region:"中国" },
+  { name:"厦门航空 (Xiamen Airlines)", type:"airline", region:"中国" },
+  { name:"四川航空 (Sichuan Airlines)", type:"airline", region:"中国" },
+  { name:"山东航空 (Shandong Airlines)", type:"airline", region:"中国" },
+  { name:"春秋航空 (Spring Airlines)", type:"airline", region:"中国" },
+  { name:"吉祥航空 (Juneyao Air)", type:"airline", region:"中国" },
+  { name:"国泰航空 (Cathay Pacific)", type:"airline", region:"中国香港" },
+  { name:"中华航空 (China Airlines)", type:"airline", region:"中国台湾" },
+  { name:"长荣航空 (EVA Air)", type:"airline", region:"中国台湾" },
+  // Japanese Airlines
+  { name:"全日空 (ANA)", type:"airline", region:"日本" },
+  { name:"日本航空 (JAL)", type:"airline", region:"日本" },
+  // Korean Airlines
+  { name:"大韩航空 (Korean Air)", type:"airline", region:"韩国" },
+  { name:"韩亚航空 (Asiana Airlines)", type:"airline", region:"韩国" },
+  // Southeast Asian Airlines
+  { name:"新加坡航空 (Singapore Airlines)", type:"airline", region:"新加坡" },
+  { name:"泰国国际航空 (Thai Airways)", type:"airline", region:"泰国" },
+  { name:"亚洲航空 (AirAsia)", type:"airline", region:"马来西亚" },
+  { name:"越南航空 (Vietnam Airlines)", type:"airline", region:"越南" },
+  // Middle Eastern Airlines
+  { name:"阿联酋航空 (Emirates)", type:"airline", region:"阿联酋" },
+  { name:"卡塔尔航空 (Qatar Airways)", type:"airline", region:"卡塔尔" },
+  { name:"土耳其航空 (Turkish Airlines)", type:"airline", region:"土耳其" },
+  // European Airlines
+  { name:"汉莎航空 (Lufthansa)", type:"airline", region:"德国" },
+  { name:"法国航空 (Air France)", type:"airline", region:"法国" },
+  { name:"英国航空 (British Airways)", type:"airline", region:"英国" },
+  { name:"荷兰皇家航空 (KLM)", type:"airline", region:"荷兰" },
+  { name:"瑞士国际航空 (SWISS)", type:"airline", region:"瑞士" },
+  // North American Airlines
+  { name:"美国联合航空 (United Airlines)", type:"airline", region:"美国" },
+  { name:"达美航空 (Delta Air Lines)", type:"airline", region:"美国" },
+  { name:"美国航空 (American Airlines)", type:"airline", region:"美国" },
+  { name:"加拿大航空 (Air Canada)", type:"airline", region:"加拿大" },
+  // Oceanian Airlines
+  { name:"澳洲航空 (Qantas)", type:"airline", region:"澳大利亚" },
+  { name:"新西兰航空 (Air New Zealand)", type:"airline", region:"新西兰" },
+];
