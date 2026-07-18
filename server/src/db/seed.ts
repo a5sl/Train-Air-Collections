@@ -1,11 +1,14 @@
-import { getStations, writeJson } from "./store";
+import { getStations, writeJson, createTrip } from "./store";
 import { chinaRailStations } from "./seed-china-rail";
 import { chinaAirports } from "./seed-china-air";
 import { intlAirports } from "./seed-intl-air";
 import { intlRailStations } from "./seed-intl-rail";
 import { seedOperators } from "./seed-operators";
 import fs from "fs";
-import path from "path";
+import path from "path"
+import { fileURLToPath } from "url"
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const DATA_DIR = path.resolve(__dirname, "../../data");
 
@@ -85,7 +88,6 @@ export function importTripsFromCSV(csvText: string): { imported: number; errors:
   const stationByName = new Map<string, number>();
   stations.forEach(s => stationByName.set(s.name.toLowerCase(), s.id));
 
-  const { default: store } = require("./store");
   let imported = 0;
 
   for (let i = 1; i < lines.length; i++) {
@@ -117,7 +119,7 @@ export function importTripsFromCSV(csvText: string): { imported: number; errors:
     }
 
     try {
-      store.createTrip({
+      createTrip({
         type: row["type"] as any,
         date: row["date"],
         departureTime: row["departuretime"],

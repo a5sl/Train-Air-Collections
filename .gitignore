@@ -17,6 +17,12 @@ Thumbs.db
 # Data files (generated at runtime)
 server/data/
 
+# Source data for stations/airports (large shapefiles, not part of repo)
+rail_airport_stat/
+
+# Personal trip database (independent from stations data)
+trips.db
+
 # Logs
 *.log
 npm-debug.log*

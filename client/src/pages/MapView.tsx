@@ -161,12 +161,16 @@ export default function MapView() {
           <MapContainer
             center={[35, 105]}
             zoom={4}
+            minZoom={3}
+            maxBounds={[[-85, -180], [85, 180]]}
+            maxBoundsViscosity={0.5}
             className="w-full h-full"
             scrollWheelZoom={true}
           >
             <TileLayer
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              noWrap={true}
             />
             <MapBounds trips={displayTrips} />
 

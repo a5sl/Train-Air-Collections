@@ -1,7 +1,8 @@
 import fs from "fs";
 import path from "path";
+import { fileURLToPath } from "url";
 
-const DATA_DIR = path.resolve(__dirname, "../../data");
+const DATA_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../data");
 
 function ensureDir() {
   if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });

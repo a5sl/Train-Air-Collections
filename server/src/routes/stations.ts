@@ -15,7 +15,7 @@ router.get("/", (req: Request, res: Response) => {
           s.city.toLowerCase().includes(q) ||
           (s.code && s.code.toLowerCase().includes(q))
       );
-    } else {
+    } else if (!type) {
       stations = stations.slice(0, 50);
     }
     // Filter by station type if provided (train_station / airport)
