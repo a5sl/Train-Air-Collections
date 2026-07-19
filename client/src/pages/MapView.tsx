@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from "react-leaflet";
 import L from "leaflet";
-import { Train, Plane, Layers } from "lucide-react";
+import { Train, Plane, Layers, ChevronDown, Filter } from "lucide-react";
 import { api } from "../lib/api";
 import type { Trip } from "../../shared/types";
 
@@ -13,26 +13,66 @@ import shadowUrl from "leaflet/dist/images/marker-shadow.png";
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({ iconUrl, iconRetinaUrl, shadowUrl });
 
+// Train icon -- terracotta pill with locomotive SVG
 const trainIcon = L.divIcon({
-  html: `<div style="background:#4263eb;color:white;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;border:2px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3);">🚂</div>`,
+  html: `<div style="
+    width:32px;height:32px;
+    background:#fdfaf5;
+    border:2px solid #b47157;
+    border-radius:8px;
+    box-shadow:0 2px 10px rgba(0,0,0,0.15);
+    display:flex;align-items:center;justify-content:center;
+  ">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#b47157" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="3" width="18" height="12" rx="2"/>
+      <line x1="3" y1="15" x2="21" y2="15"/>
+      <line x1="3" y1="7" x2="21" y2="7"/>
+      <circle cx="8" cy="19" r="1.8" fill="#b47157"/>
+      <circle cx="16" cy="19" r="1.8" fill="#b47157"/>
+      <rect x="10" y="4" width="4" height="3" rx="1" fill="#b47157"/>
+    </svg>
+  </div>`,
   className: "",
-  iconSize: [28, 28],
-  iconAnchor: [14, 14],
+  iconSize: [32, 32],
+  iconAnchor: [16, 16],
 });
 
+
+// Airplane icon -- terracotta pill with swept-wing SVG
 const planeIcon = L.divIcon({
-  html: `<div style="background:#12b886;color:white;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;border:2px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3);">✈</div>`,
+  html: `<div style="
+    width:32px;height:32px;
+    background:#fdfaf5;
+    border:2px solid #ca947a;
+    border-radius:8px;
+    box-shadow:0 2px 10px rgba(0,0,0,0.15);
+    display:flex;align-items:center;justify-content:center;
+  ">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ca947a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M22 12L3 20L8 12L3 4Z"/>
+      <line x1="8" y1="12" x2="15" y2="12"/>
+    </svg>
+  </div>`,
   className: "",
-  iconSize: [28, 28],
-  iconAnchor: [14, 14],
+  iconSize: [32, 32],
+  iconAnchor: [16, 16],
 });
 
+
+// Station dot -- small terracotta circle
 const stationIcon = L.divIcon({
-  html: `<div style="background:#f59e0b;color:white;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;border:2px solid white;box-shadow:0 1px 4px rgba(0,0,0,0.3);">●</div>`,
+  html: `<div style="
+    width:16px;height:16px;
+    background:#b47157;
+    border:2px solid #fdfaf5;
+    border-radius:50%;
+    box-shadow:0 1px 6px rgba(180,113,87,0.35);
+  "></div>`,
   className: "",
-  iconSize: [20, 20],
-  iconAnchor: [10, 10],
+  iconSize: [16, 16],
+  iconAnchor: [8, 8],
 });
+
 
 function MapBounds({ trips }: { trips: Trip[] }) {
   const map = useMap();
@@ -57,16 +97,28 @@ function MapBounds({ trips }: { trips: Trip[] }) {
 export default function MapView() {
   const [trips, setTrips] = useState<Trip[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showAll, setShowAll] = useState(true);
-  const [selectedTrip, setSelectedTrip] = useState<number | null>(null);
+  const [filterMode, setFilterMode] = useState<"all" | "train" | "flight">("all");
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
 
   useEffect(() => {
     api.getTrips().then(setTrips).catch(console.error).finally(() => setLoading(false));
   }, []);
 
-  const displayTrips = showAll
+  const displayTrips = filterMode === "all"
     ? trips
-    : trips.filter((t) => t.id === selectedTrip);
+    : trips.filter((t) => t.type === filterMode);
 
   // Build polyline for each trip
   const polylines = displayTrips
@@ -119,37 +171,49 @@ export default function MapView() {
             {trips.filter((t) => t.departureStation?.latitude).length} 条可示之行旅
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => { setShowAll(true); setSelectedTrip(null); }}
-            className={`text-xs font-medium px-3 py-1.5 rounded-lg transition-colors ${
-              showAll ? "bg-terracotta-100 text-terracotta-700" : "text-ink-400 hover:bg-parchment-200"
-            }`}
-          >
-            <Layers className="w-3.5 h-3.5 inline mr-1" />
-            全部显示
-          </button>
+        <div className="flex items-center gap-2" ref={dropdownRef}>
+          <div className="relative">
+            <button
+              onClick={() => setDropdownOpen(!dropdownOpen)}
+              className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg bg-terracotta-100 text-terracotta-700 hover:bg-terracotta-200 transition-colors"
+            >
+              <Filter className="w-3.5 h-3.5" />
+              {filterMode === "all" ? "全部显示" : filterMode === "train" ? "仅铁轨" : "仅云路"}
+              <ChevronDown className={`w-3.5 h-3.5 transition-transform ${dropdownOpen ? "rotate-180" : ""}`} />
+            </button>
+            {dropdownOpen && (
+              <div className="absolute right-0 z-[9999] mt-1 w-36 bg-white rounded-lg border border-terracotta-200 shadow-lg overflow-hidden">
+                {([
+                  { mode: "all" as const, label: "全部显示", desc: "所有行程" },
+                  { mode: "train" as const, label: "仅铁轨", desc: "只显示火车" },
+                  { mode: "flight" as const, label: "仅云路", desc: "只显示航班" },
+                ]).map(({ mode, label, desc }) => (
+                  <button
+                    key={mode}
+                    onClick={() => {
+                      setFilterMode(mode);
+                      
+                      setDropdownOpen(false);
+                    }}
+                    className={`w-full text-left px-3 py-2 text-sm transition-colors hover:bg-parchment-100 flex items-center gap-2 ${
+                      filterMode === mode ? "bg-terracotta-50 text-terracotta-700 font-medium" : "text-ink-600"
+                    }`}
+                  >
+                    {mode === "train" ? <Train className="w-3.5 h-3.5 flex-shrink-0" /> :
+                     mode === "flight" ? <Plane className="w-3.5 h-3.5 flex-shrink-0" /> :
+                     <Filter className="w-3.5 h-3.5 flex-shrink-0" />}
+                    <div>
+                      <div className="text-xs leading-tight">{label}</div>
+                      <div className="text-[10px] text-ink-400 leading-tight">{desc}</div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Trip selector when not showing all */}
-      {!showAll && (
-        <div className="flex gap-2 overflow-x-auto pb-2 flex-shrink-0">
-          {trips.map((t) => (
-            <button
-              key={t.id}
-              onClick={() => setSelectedTrip(t.id === selectedTrip ? null : t.id)}
-              className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                t.id === selectedTrip
-                  ? t.type === "train" ? "bg-terracotta-100 text-terracotta-700" : "bg-terracotta-50 text-terracotta-600"
-                  : "bg-parchment-200 text-ink-500 hover:bg-parchment-300"
-              }`}
-            >
-              {t.trainFlightNumber}: {t.departureStation?.name}→{t.arrivalStation?.name}
-            </button>
-          ))}
-        </div>
-      )}
 
       {/* Map */}
       {loading ? (
@@ -204,7 +268,7 @@ export default function MapView() {
                 <Popup>
                   <div className="text-sm space-y-1">
                     <p className="font-semibold">
-                      {trip.type === "train" ? "🚂" : "✈"} {trip.trainFlightNumber}
+                      {trip.trainFlightNumber}
                     </p>
                     <p className="text-gray-600">
                       {trip.departureStation?.name} → {trip.arrivalStation?.name}
