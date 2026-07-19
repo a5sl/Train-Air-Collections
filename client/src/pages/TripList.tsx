@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
-import { Train, Plane, Clock, MapPin, Trash2, ChevronRight, Search, Upload, Database } from "lucide-react";
+import { Train, Plane, Clock, MapPin, Trash2, ChevronRight, Search, Upload, Database, Pencil } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { api } from "../lib/api";
 import type { Trip } from "../../shared/types";
 
@@ -11,6 +12,7 @@ export default function TripList() {
   const [filter, setFilter] = useState<"all" | "train" | "flight">("all");
   const [searchQuery, setSearchQuery] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
+  const navigate = useNavigate();
 
   const loadTrips = () => {
     setLoading(true);
@@ -180,6 +182,11 @@ export default function TripList() {
                       {trip.currency || ""} {trip.cost.toLocaleString()}
                     </span>
                   )}
+                  <button onClick={() => navigate(`/edit/${trip.id}`)}
+                    className="opacity-0 group-hover:opacity-100 transition-opacity text-ink-300 hover:text-terracotta-500"
+                    title="编辑行程">
+                    <Pencil className="w-4 h-4" />
+                  </button>
                   <button onClick={() => handleDelete(trip.id)}
                     className="opacity-0 group-hover:opacity-100 transition-opacity text-ink-300 hover:text-terracotta-500">
                     <Trash2 className="w-4 h-4" />

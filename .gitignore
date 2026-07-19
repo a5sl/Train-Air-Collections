@@ -15,7 +15,7 @@ Thumbs.db
 .idea/
 
 # Data files (generated at runtime)
-server/data/
+server/data/trips.json
 
 # Source data for stations/airports (large shapefiles, not part of repo)
 rail_airport_stat/
