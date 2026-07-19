@@ -1,7 +1,7 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from "react-leaflet";
 import L from "leaflet";
-import { Train, Plane, Layers, ChevronDown, Filter } from "lucide-react";
+import { Train, Plane, Layers, ChevronDown, Filter, X } from "lucide-react";
 import { api } from "../lib/api";
 import type { Trip } from "../../shared/types";
 
@@ -23,6 +23,35 @@ const C = {
 };
 
 const ZOOM_THRESHOLD = 9;
+
+// Normalize city name: strip parentheticals + fallback English→Chinese mapping
+function normalizeCity(city: string): string {
+  let c = city.replace(/\s*\(.*?\)\s*$/, "").trim();
+  // Fallback English→Chinese mapping for any legacy data
+  const EN_TO_CN: Record<string, string> = {
+    "beijing": "北京", "shanghai": "上海", "guangzhou": "广州",
+    "shenzhen": "深圳", "chengdu": "成都", "wuhan": "武汉",
+    "hangzhou": "杭州", "xian": "西安", "chongqing": "重庆",
+    "nanjing": "南京", "kunming": "昆明", "changsha": "长沙",
+    "tianjin": "天津", "shenyang": "沈阳", "zhengzhou": "郑州",
+    "jinan": "济南", "xiamen": "厦门", "fuzhou": "福州",
+    "liuzhou": "柳州", "nanning": "南宁", "guilin": "桂林",
+    "guiyang": "贵阳", "haikou": "海口", "sanya": "三亚",
+    "hefei": "合肥", "nanchang": "南昌", "harbin": "哈尔滨",
+    "changchun": "长春", "dalian": "大连", "zhuhai": "珠海",
+    "lanzhou": "兰州", "taiyuan": "太原", "shijiazhuang": "石家庄",
+    "wuxi": "无锡", "suzhou": "苏州", "ningbo": "宁波",
+    "wenzhou": "温州", "qingdao": "青岛", "yantai": "烟台",
+    "huhehaote": "呼和浩特", "hohhot": "呼和浩特",
+    "urumqi": "乌鲁木齐", "lhasa": "拉萨", "lasa": "拉萨",
+    "xining": "西宁", "yinchuan": "银川",
+    "xianggang": "香港", "hongkong": "香港",
+    "aomen": "澳门", "macau": "澳门",
+  };
+  const lower = c.toLowerCase();
+  if (EN_TO_CN[lower]) return EN_TO_CN[lower];
+  return c;
+}
 
 // ---- Icon factories ----
 function pillIcon(mainColor: string, svgInner: string): L.DivIcon {
@@ -87,18 +116,15 @@ function bezierArc(
   const [lat1, lng1] = start;
   const [lat2, lng2] = end;
 
-  // Midpoint
   const midLat = (lat1 + lat2) / 2;
   const midLng = (lng1 + lng2) / 2;
 
-  // Direction and perpendicular
   const dLat = lat2 - lat1;
   const dLng = lng2 - lng1;
   const len = Math.sqrt(dLat * dLat + dLng * dLng) || 1;
   const pLat = -dLng / len;
   const pLng = dLat / len;
 
-  // Offset: proportional to distance, capped
   const offset = Math.min(len * 0.28, 8);
 
   const cpLat = midLat + pLat * offset;
@@ -116,8 +142,14 @@ function bezierArc(
 }
 
 // ---- Zoom-aware station markers ----
-function ZoomMarkers({ stations }: {
-  stations: Map<number, { name: string; lat: number; lng: number; type: string }>;
+function ZoomMarkers({
+  stations,
+  onStationClick,
+  markerClickRef,
+}: {
+  stations: Map<number, { name: string; city: string; lat: number; lng: number; type: string }>;
+  onStationClick: (city: string) => void;
+  markerClickRef: React.MutableRefObject<boolean>;
 }) {
   const map = useMap();
   const [zoom, setZoom] = useState(map.getZoom());
@@ -141,11 +173,18 @@ function ZoomMarkers({ stations }: {
               ? s.type === "train" ? trainPill : planePill
               : s.type === "train" ? trainDot : flightDot
           }
+          eventHandlers={{
+            click: () => {
+              markerClickRef.current = true;
+              onStationClick(s.city);
+            },
+          }}
         >
           {detail && (
             <Popup>
               <div className="text-sm">
                 <p className="font-semibold">{s.name}</p>
+                <p className="text-ink-400 text-xs mt-0.5">{s.city}</p>
               </div>
             </Popup>
           )}
@@ -155,7 +194,54 @@ function ZoomMarkers({ stations }: {
   );
 }
 
-// ---- MapBounds ----
+// ---- Map click to clear city filter ----
+function MapClickClear({
+  onClear,
+  markerClickRef,
+}: {
+  onClear: () => void;
+  markerClickRef: React.MutableRefObject<boolean>;
+}) {
+  const map = useMap();
+  useEffect(() => {
+    const handler = () => {
+      // Wait a tick: if a marker was clicked, its handler sets the ref
+      // before this map-level handler fires.
+      setTimeout(() => {
+        if (markerClickRef.current) {
+          markerClickRef.current = false;
+          return;
+        }
+        onClear();
+      }, 0);
+    };
+    map.on("click", handler);
+    return () => { map.off("click", handler); };
+  }, [map, onClear, markerClickRef]);
+  return null;
+}
+
+// ---- Auto fit bounds when city filter changes ----
+function FitBoundsOnFilter({ trips, city }: { trips: Trip[]; city: string | null }) {
+  const map = useMap();
+  const prevCity = useRef(city);
+  useEffect(() => {
+    if (city && city !== prevCity.current && trips.length > 0) {
+      const coords: [number, number][] = [];
+      trips.forEach((t) => {
+        if (t.departureStation?.latitude && t.departureStation?.longitude)
+          coords.push([t.departureStation.latitude, t.departureStation.longitude]);
+        if (t.arrivalStation?.latitude && t.arrivalStation?.longitude)
+          coords.push([t.arrivalStation.latitude, t.arrivalStation.longitude]);
+      });
+      if (coords.length > 0) map.fitBounds(L.latLngBounds(coords).pad(0.1));
+    }
+    prevCity.current = city;
+  }, [city, trips, map]);
+  return null;
+}
+
+// ---- MapBounds (initial load) ----
 function MapBounds({ trips }: { trips: Trip[] }) {
   const map = useMap();
   useEffect(() => {
@@ -176,8 +262,10 @@ export default function MapView() {
   const [trips, setTrips] = useState<Trip[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterMode, setFilterMode] = useState<"all" | "train" | "flight">("all");
+  const [selectedCity, setSelectedCity] = useState<string | null>(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const markerClickRef = useRef(false);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -192,8 +280,17 @@ export default function MapView() {
     api.getTrips().then(setTrips).catch(console.error).finally(() => setLoading(false));
   }, []);
 
-  const displayTrips =
-    filterMode === "all" ? trips : trips.filter((t) => t.type === filterMode);
+  // Two-level filter: type + city (normalize parenthetical suffixes)
+  const displayTrips = trips.filter((t) => {
+    if (filterMode !== "all" && t.type !== filterMode) return false;
+    if (selectedCity) {
+      const target = normalizeCity(selectedCity);
+      const depCity = t.departureStation?.city ?? "";
+      const arrCity = t.arrivalStation?.city ?? "";
+      if (normalizeCity(depCity) !== target && normalizeCity(arrCity) !== target) return false;
+    }
+    return true;
+  });
 
   // Curve data for each trip
   const curves = displayTrips
@@ -210,17 +307,34 @@ export default function MapView() {
       return { trip: t, positions: bezierArc(start, end) };
     });
 
-  // Unique stations
-  const stationSet = new Map<number, { name: string; lat: number; lng: number; type: string }>();
+  // Unique stations from displayed trips
+  const stationSet = new Map<number, { name: string; city: string; lat: number; lng: number; type: string }>();
   displayTrips.forEach((t) => {
     const add = (s: typeof t.departureStation) => {
       if (s?.latitude && s?.longitude && s.id && !stationSet.has(s.id)) {
-        stationSet.set(s.id, { name: s.name, lat: s.latitude, lng: s.longitude, type: t.type });
+        stationSet.set(s.id, {
+          name: s.name,
+          city: s.city,
+          lat: s.latitude,
+          lng: s.longitude,
+          type: t.type,
+        });
       }
     };
     add(t.departureStation);
     add(t.arrivalStation);
   });
+
+  const handleStationClick = useCallback((city: string) => {
+    setSelectedCity(city);
+  }, []);
+
+  const clearCityFilter = useCallback(() => {
+    setSelectedCity(null);
+  }, []);
+
+  // Normalized city for banner display
+  const displayCityName = selectedCity ? normalizeCity(selectedCity) : null;
 
   return (
     <div className="space-y-4 h-[calc(100vh-12rem)] flex flex-col">
@@ -271,6 +385,22 @@ export default function MapView() {
         </div>
       </div>
 
+      {/* City filter banner */}
+      {selectedCity && (
+        <div className="flex items-center justify-between px-4 py-2.5 bg-parchment-100 rounded-lg border border-parchment-200 flex-shrink-0">
+          <span className="text-sm text-ink-600">
+            正在显示「<span className="font-semibold text-ink-800">{displayCityName}</span>」的行程 · 共 {displayTrips.length} 条
+          </span>
+          <button
+            onClick={clearCityFilter}
+            className="inline-flex items-center gap-1 text-xs text-terracotta-600 hover:text-terracotta-700 font-medium transition-colors"
+          >
+            <X className="w-3.5 h-3.5" />
+            显示全部
+          </button>
+        </div>
+      )}
+
       {/* Map */}
       {loading ? (
         <div className="flex-1 card flex items-center justify-center">
@@ -293,7 +423,13 @@ export default function MapView() {
               noWrap={true}
             />
             <MapBounds trips={displayTrips} />
-            <ZoomMarkers stations={stationSet} />
+            <FitBoundsOnFilter trips={displayTrips} city={selectedCity} />
+            <MapClickClear onClear={clearCityFilter} markerClickRef={markerClickRef} />
+            <ZoomMarkers
+              stations={stationSet}
+              onStationClick={handleStationClick}
+              markerClickRef={markerClickRef}
+            />
 
             {/* Curved routes */}
             {curves.map(({ trip, positions }, i) => (
@@ -328,7 +464,7 @@ export default function MapView() {
       )}
 
       {/* Legend */}
-      <div className="flex items-center gap-5 text-xs text-ink-400 flex-shrink-0">
+      <div className="flex items-center gap-5 text-xs text-ink-400 flex-shrink-0 flex-wrap">
         <div className="flex items-center gap-1.5">
           <div className="w-4 h-0.5 rounded" style={{ backgroundColor: C.trainLine }} />
           <span>火车</span>
