@@ -9,7 +9,6 @@ export interface Station {
   code: string | null;          // IATA code / station code
   city: string;
   country: string;
-  region: string;               // e.g., "中国", "日本", "法国"
   latitude: number | null;
   longitude: number | null;
   type: StationType;
@@ -71,7 +70,6 @@ export interface StationCreateInput {
   code?: string;
   city: string;
   country: string;
-  region: string;
   latitude?: number;
   longitude?: number;
   type: StationType;

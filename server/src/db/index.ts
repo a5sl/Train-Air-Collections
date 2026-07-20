@@ -30,7 +30,6 @@ export async function initDb() {
       code TEXT,
       city TEXT NOT NULL,
       country TEXT NOT NULL,
-      region TEXT NOT NULL,
       latitude REAL,
       longitude REAL,
       type TEXT NOT NULL CHECK(type IN ('train_station','airport')),

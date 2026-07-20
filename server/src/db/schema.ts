@@ -7,7 +7,6 @@ export const stations = sqliteTable("stations", {
   code: text("code"),
   city: text("city").notNull(),
   country: text("country").notNull(),
-  region: text("region").notNull(),
   latitude: real("latitude"),
   longitude: real("longitude"),
   type: text("type", { enum: ["train_station", "airport"] }).notNull(),

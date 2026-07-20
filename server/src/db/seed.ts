@@ -16,7 +16,7 @@ const DATA_DIR = path.resolve(__dirname, "../../data");
 
 export interface Operator {
   id: number; name: string; type: "railway" | "airline" | "other";
-  region: string; createdAt: string;
+  createdAt: string;
 }
 
 export function getOperators(q?: string) {
@@ -26,11 +26,11 @@ export function getOperators(q?: string) {
   if (!q) return ops.slice(0, 100);
   const lq = q.toLowerCase();
   return ops.filter(
-    (o) => o.name.toLowerCase().includes(lq) || o.region.toLowerCase().includes(lq)
+    (o) => o.name.toLowerCase().includes(lq)
   ).slice(0, 20);
 }
 
-export function addOperator(data: { name: string; type: string; region: string }) {
+export function addOperator(data: { name: string; type: string }) {
   const fp = path.join(DATA_DIR, "operators.json");
   const ops: Operator[] = fs.existsSync(fp) ? JSON.parse(fs.readFileSync(fp, "utf-8")) : [];
   const id = ops.length > 0 ? Math.max(...ops.map(o => o.id)) + 1 : 1;
@@ -49,7 +49,7 @@ export function seedStations() {
   const stations = all.map((s, i) => ({
     id: i + 1,
     name: s.name, code: s.code, city: s.city, country: s.country,
-    region: s.region, latitude: s.lat, longitude: s.lng,
+    latitude: s.lat, longitude: s.lng,
     type: s.type, createdAt: new Date().toISOString(),
   }));
   writeJson("stations.json", stations);

@@ -30,7 +30,6 @@ export interface Station {
   code: string | null;
   city: string;
   country: string;
-  region: string;
   latitude: number | null;
   longitude: number | null;
   type: "train_station" | "airport";

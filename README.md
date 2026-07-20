@@ -83,7 +83,6 @@ Train-Air-Collections/
 | code | string | IATA 代码 / 站码 |
 | city | string | 城市 |
 | country | string | 国家 |
-| region | string | 地区（如 中国、日本） |
 | latitude | number | 纬度 |
 | longitude | number | 经度 |
 | type | train_station / airport | 类型 |

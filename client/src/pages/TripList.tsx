@@ -158,13 +158,6 @@ export default function TripList() {
                     {trip.distanceKm && (
                       <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{trip.distanceKm} km</span>
                     )}
-                    {trip.departureStation?.region && (
-                      <span className="px-1.5 py-0.5 bg-gray-100 rounded">
-                        {trip.departureStation.region}
-                        {trip.arrivalStation?.region && trip.arrivalStation.region !== trip.departureStation.region
-                          ? ` → ${trip.arrivalStation.region}` : ""}
-                      </span>
-                    )}
                   </div>
                   {(trip.trainName || trip.vehicleType || trip.seatClass) && (
                     <div className="mt-1.5 flex items-center gap-2 text-xs text-gray-400 flex-wrap">

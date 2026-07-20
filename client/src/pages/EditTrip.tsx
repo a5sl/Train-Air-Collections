@@ -63,7 +63,6 @@ function StationPicker({
     code: "",
     city: "",
     country: "",
-    region: "",
     latitude: "",
     longitude: "",
   });
@@ -95,21 +94,20 @@ function StationPicker({
   };
 
   const createStation = async () => {
-    if (!newStation.name || !newStation.city || !newStation.country || !newStation.region) return;
+    if (!newStation.name || !newStation.city || !newStation.country) return;
     try {
       const created = await api.createStation({
         name: newStation.name,
         code: newStation.code || undefined,
         city: newStation.city,
         country: newStation.country,
-        region: newStation.region,
         latitude: newStation.latitude ? parseFloat(newStation.latitude) : undefined,
         longitude: newStation.longitude ? parseFloat(newStation.longitude) : undefined,
         type: stationType,
       });
       selectStation(created);
       setIsCreating(false);
-      setNewStation({ name: "", code: "", city: "", country: "", region: "", latitude: "", longitude: "" });
+      setNewStation({ name: "", code: "", city: "", country: "", latitude: "", longitude: "" });
     } catch {
       alert("创建站点失败");
     }
@@ -122,7 +120,7 @@ function StationPicker({
         <div className="flex items-center gap-2 p-2.5 bg-gray-50 rounded-lg border border-gray-200">
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-gray-900 truncate">{value.name}</p>
-            <p className="text-xs text-gray-500">{value.city}, {value.region}</p>
+            <p className="text-xs text-gray-500">{value.city}</p>
           </div>
           <button onClick={() => { onChange(null); setQuery(""); }} className="text-gray-400 hover:text-gray-600">
             <X className="w-4 h-4" />
@@ -165,8 +163,6 @@ function StationPicker({
                         <input className="input-field" placeholder="国家 *" value={newStation.country}
                           onChange={e => setNewStation(p => ({...p, country: e.target.value}))} />
                       </div>
-                      <input className="input-field" placeholder="地区 * (如中国、日本、法国)" value={newStation.region}
-                        onChange={e => setNewStation(p => ({...p, region: e.target.value}))} />
                       <div className="grid grid-cols-2 gap-2">
                         <input className="input-field" placeholder="纬度" value={newStation.latitude}
                           onChange={e => setNewStation(p => ({...p, latitude: e.target.value}))} />
@@ -189,7 +185,7 @@ function StationPicker({
                 <div key={s.id} onClick={() => selectStation(s)} className="station-option">
                   <span className="font-medium text-gray-900">{s.name}</span>
                   {s.code && <span className="text-gray-400 ml-1.5">({s.code})</span>}
-                  <span className="text-gray-400 ml-2 text-xs">{s.city}, {s.region}</span>
+                  <span className="text-gray-400 ml-2 text-xs">{s.city}</span>
                 </div>
               ))}
             </div>

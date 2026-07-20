@@ -2,7 +2,7 @@ import React, { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Train, Plane, Clock, MapPin, BarChart3, Plus,
-  TrendingUp, Star, Navigation, Calendar, DollarSign, Globe,
+  TrendingUp, Star, Navigation, Calendar, DollarSign,
 } from "lucide-react";
 import { api } from "../lib/api";
 import type { Trip } from "../../shared/types";
@@ -185,19 +185,6 @@ export default function Dashboard() {
       withDist.length > 0
         ? Math.round(withDist.reduce((s, t) => s + (t.distanceKm ?? 0), 0) / withDist.length)
         : 0;
-
-    const regionMap = new Map<string, number>();
-    trips.forEach((t) => {
-      if (t.departureStation?.region) {
-        regionMap.set(t.departureStation.region, (regionMap.get(t.departureStation.region) || 0) + 1);
-      }
-      if (t.arrivalStation?.region) {
-        regionMap.set(t.arrivalStation.region, (regionMap.get(t.arrivalStation.region) || 0) + 1);
-      }
-    });
-    const regions = Array.from(regionMap.entries())
-      .sort((a, b) => b[1] - a[1]);
-
     const cityMap = new Map<string, number>();
     trips.forEach((t) => {
       const c = t.arrivalStation?.city || t.arrivalStation?.name;
@@ -220,8 +207,7 @@ export default function Dashboard() {
       topOperators,
       longest,
       avgDistance,
-      topCities,
-      regions,
+      topCities
     };
   }, [trips]);
 
@@ -370,24 +356,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* ====== Region Distribution ====== */}
-      {stats.regions.length > 0 && (
-        <div className="card-parchment p-5">
-          <h3 className="text-xs font-semibold text-ink-400 uppercase tracking-wider mb-3 flex items-center gap-2">
-            <Globe className="w-4 h-4" style={{ color: "#b47157" }} />游历之域
-          </h3>
-          <p className="text-xs text-ink-400 mb-3">已涉 {stats.regions.length} 域</p>
-          <div className="flex flex-wrap gap-2">
-            {stats.regions.map(([region, count]) => (
-              <span key={region} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm"
-                style={{ backgroundColor: "rgba(180,113,87,0.08)", color: "#854b36" }}>
-                {region}
-                <span style={{ color: "#ca947a" }} className="text-xs ml-0.5">{count}</span>
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* ====== Top Operators ====== */}
       {stats.topOperators.length > 0 && (

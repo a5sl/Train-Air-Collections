@@ -41,7 +41,7 @@ export const api = {
 
   getOperators: (q?: string) =>
     request<any[]>(`/operators${q ? `?q=${encodeURIComponent(q)}` : ""}`),
-  createOperator: (data: { name: string; type: string; region: string }) =>
+  createOperator: (data: { name: string; type: string }) =>
     request<any>("/operators", { method: "POST", body: JSON.stringify(data) }),
 
   seedData: () =>
