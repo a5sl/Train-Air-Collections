@@ -1,5 +1,6 @@
 import express from "express";
 import cors from "cors";
+import { initDb } from "./db/index";
 import tripsRouter from "./routes/trips";
 import stationsRouter from "./routes/stations";
 import { seedStations, seedOperatorsData, getOperators, addOperator, importTripsFromCSV } from "./db/seed";
@@ -33,7 +34,7 @@ app.post("/api/operators", (req, res) => {
   }
 });
 
-// ---- Seed ----
+// ---- Seed (manual trigger) ----
 app.post("/api/seed", (_req, res) => {
   try {
     const nStations = seedStations();
@@ -63,15 +64,12 @@ app.get("/api/health", (_req, res) => {
   res.json({ status: "ok" });
 });
 
-// Auto-seed on startup
-try {
-  const n1 = seedStations();
-  const n2 = seedOperatorsData();
-  console.log(`Seed complete: ${n1} stations, ${n2} operators`);
-} catch (e) {
-  console.error("Seed failed:", e);
+// Start server
+async function start() {
+  await initDb();
+  app.listen(PORT, () => {
+    console.log(`Server running on http://localhost:${PORT}`);
+  });
 }
 
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
-});
+start();

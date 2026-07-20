@@ -9,6 +9,24 @@ import type { Trip } from "../../shared/types";
 
 // ---- Helpers ----
 
+const CURRENCY_SYMBOLS: Record<string, string> = {
+  CNY: "¥",
+  JPY: "¥",
+  USD: "$",
+  EUR: "€",
+  GBP: "£",
+  HKD: "HK$",
+  TWD: "NT$",
+  KRW: "₩",
+  THB: "฿",
+  SGD: "S$",
+  MYR: "RM",
+  VND: "₫",
+  AUD: "A$",
+};
+
+
+
 function formatDuration(minutes: number | null): string {
   if (!minutes) return "-";
   const h = Math.floor(minutes / 60);
@@ -140,7 +158,14 @@ export default function Dashboard() {
     const flightTrips = trips.filter((t) => t.type === "flight");
     const totalDistance = trips.reduce((s, t) => s + (t.distanceKm || 0), 0);
     const totalDuration = trips.reduce((s, t) => s + (t.durationMinutes || 0), 0);
-    const totalCost = trips.reduce((s, t) => s + (t.cost || 0), 0);
+    // Group costs by currency
+    const costByCurrency = new Map<string, number>();
+    trips.forEach((t) => {
+      if (t.cost != null && t.currency != null) {
+        costByCurrency.set(t.currency, (costByCurrency.get(t.currency) || 0) + t.cost);
+      }
+    });
+    const topCurrency = costByCurrency.size > 0 ? [...costByCurrency.entries()].sort((a, b) => b[1] - a[1])[0] : null;
 
     const cities = new Set<string>();
     trips.forEach((t) => {
@@ -199,7 +224,7 @@ export default function Dashboard() {
       flightTrips,
       totalDistance,
       totalDuration,
-      totalCost,
+      costByCurrency, topCurrency,
       cities: cities.size,
       thisYearTrips: thisYearTrips.length,
       monthly,
@@ -287,8 +312,29 @@ export default function Dashboard() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <CompactStatCard icon={Navigation} label="万里征途" value={stats.totalDistance.toLocaleString() + " km"} accent="#ca947a" />
         <CompactStatCard icon={Clock} label="光阴流转" value={formatDuration(stats.totalDuration)} accent="#b47157" />
-        <CompactStatCard icon={DollarSign} label="盘缠" value={"¥" + stats.totalCost.toLocaleString()} accent="#a05e44" />
+        <div className="card-parchment p-4 hover:shadow-md transition-shadow flex items-center gap-3"
+            style={{ borderLeftWidth: 3, borderLeftColor: "#a05e44", borderLeftStyle: "solid" }}>
+            <DollarSign className="w-4 h-4" color="#a05e44" />
+            <div className="min-w-0">
+              <p className="text-xs text-ink-400">盘缠</p>
+              {stats.costByCurrency && stats.costByCurrency.size > 0 ? (
+                <div className="flex flex-wrap gap-x-3 gap-y-0">
+                  {[...stats.costByCurrency.entries()].map(([cur, amt]) => {
+                    const sym = cur + " ";
+                    return (
+                      <span key={cur} className="text-base font-bold text-ink-700 tracking-tight whitespace-nowrap">
+                        {sym}{amt.toLocaleString()}
+                      </span>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-base font-bold text-ink-700 tracking-tight truncate">-</p>
+              )}
+            </div>
+          </div>
         <CompactStatCard icon={Calendar} label="今岁" value={stats.thisYearTrips + " 次"} accent="#854b36" />
+
       </div>
 
       {/* ====== Monthly Chart (parchment bg) ====== */}

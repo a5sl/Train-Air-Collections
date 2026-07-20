@@ -1,18 +1,14 @@
-import { getStations, writeJson, createTrip } from "./store";
+import { sql } from "drizzle-orm";
+import { db, saveDb } from "./index";
+import { stations, operators } from "./schema";
+import { getStations, createTrip } from "./store";
 import { chinaRailStations } from "./seed-china-rail";
 import { chinaAirports } from "./seed-china-air";
 import { intlAirports } from "./seed-intl-air";
 import { intlRailStations } from "./seed-intl-rail";
 import { seedOperators } from "./seed-operators";
-import fs from "fs";
-import path from "path"
-import { fileURLToPath } from "url"
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
-const DATA_DIR = path.resolve(__dirname, "../../data");
-
-// ---- Operators Store ----
+// --- Operators CRUD ---
 
 export interface Operator {
   id: number; name: string; type: "railway" | "airline" | "other";
@@ -20,56 +16,57 @@ export interface Operator {
 }
 
 export function getOperators(q?: string) {
-  const fp = path.join(DATA_DIR, "operators.json");
-  if (!fs.existsSync(fp)) return [];
-  const ops = JSON.parse(fs.readFileSync(fp, "utf-8")) as Operator[];
-  if (!q) return ops.slice(0, 100);
-  const lq = q.toLowerCase();
-  return ops.filter(
-    (o) => o.name.toLowerCase().includes(lq)
-  ).slice(0, 20);
+  if (!q) return db.select().from(operators).limit(100).all() as Operator[];
+  return db.select().from(operators).where(
+    sql`${operators.name} LIKE ${"%" + q + "%"}`
+  ).limit(20).all() as Operator[];
 }
 
 export function addOperator(data: { name: string; type: string }) {
-  const fp = path.join(DATA_DIR, "operators.json");
-  const ops: Operator[] = fs.existsSync(fp) ? JSON.parse(fs.readFileSync(fp, "utf-8")) : [];
-  const id = ops.length > 0 ? Math.max(...ops.map(o => o.id)) + 1 : 1;
-  const op: Operator = { ...data, id, type: data.type as any, createdAt: new Date().toISOString() };
-  ops.push(op);
-  fs.writeFileSync(fp, JSON.stringify(ops, null, 2), "utf-8");
-  return op;
+  const now = new Date().toISOString();
+  const result = db.insert(operators).values({
+    name: data.name,
+    type: data.type as any,
+    createdAt: now,
+  }).returning().get() as Operator;
+  saveDb();
+  return result;
 }
 
-// ---- Seed Functions ----
+// --- Seed Functions (use raw SQL for performance) ---
 
-export function seedStations() {
-  const existing = getStations();
-  if (existing.length > 0) return existing.length;
+export function seedStations(): number {
+  const count = db.select({ c: sql`count(*)` }).from(stations).get() as any;
+  if (count.c > 0) return count.c as number;
+
   const all = [...chinaRailStations, ...chinaAirports, ...intlAirports, ...intlRailStations];
-  const stations = all.map((s, i) => ({
-    id: i + 1,
-    name: s.name, code: s.code, city: s.city, country: s.country,
-    latitude: s.lat, longitude: s.lng,
-    type: s.type, createdAt: new Date().toISOString(),
-  }));
-  writeJson("stations.json", stations);
-  return stations.length;
-}
-
-export function seedOperatorsData() {
-  const fp = path.join(DATA_DIR, "operators.json");
-  if (fs.existsSync(fp)) {
-    const existing = JSON.parse(fs.readFileSync(fp, "utf-8"));
-    return existing.length;
+  const now = new Date().toISOString();
+  for (let i = 0; i < all.length; i++) {
+    const s = all[i];
+    db.insert(stations).values({
+      name: s.name, code: s.code, city: s.city, country: s.country,
+      latitude: s.lat, longitude: s.lng, type: s.type, createdAt: now,
+    }).run();
   }
-  const ops = seedOperators.map((o, i) => ({
-    ...o, id: i + 1, createdAt: new Date().toISOString(),
-  }));
-  fs.writeFileSync(fp, JSON.stringify(ops, null, 2), "utf-8");
-  return ops.length;
+  saveDb();
+  return all.length;
 }
 
-// ---- CSV Import ----
+export function seedOperatorsData(): number {
+  const count = db.select({ c: sql`count(*)` }).from(operators).get() as any;
+  if (count.c > 0) return count.c as number;
+
+  const now = new Date().toISOString();
+  for (const o of seedOperators) {
+    db.insert(operators).values({
+      name: o.name, type: o.type as any, createdAt: now,
+    }).run();
+  }
+  saveDb();
+  return seedOperators.length;
+}
+
+// --- CSV Import ---
 
 export function importTripsFromCSV(csvText: string): { imported: number; errors: string[] } {
   const errors: string[] = [];
@@ -84,9 +81,9 @@ export function importTripsFromCSV(csvText: string): { imported: number; errors:
     }
   }
 
-  const stations = getStations();
+  const stats = getStations();
   const stationByName = new Map<string, number>();
-  stations.forEach(s => stationByName.set(s.name.toLowerCase(), s.id));
+  stats.forEach(s => stationByName.set(s.name.toLowerCase(), s.id));
 
   let imported = 0;
 
@@ -108,38 +105,22 @@ export function importTripsFromCSV(csvText: string): { imported: number; errors:
 
     let depId = stationByName.get(depName.toLowerCase());
     let arrId = stationByName.get(arrName.toLowerCase());
-
-    if (depId === undefined) {
-      errors.push(`Row ${i + 1}: station not found: "${depName}"`);
-      continue;
-    }
-    if (arrId === undefined) {
-      errors.push(`Row ${i + 1}: station not found: "${arrName}"`);
-      continue;
-    }
+    if (depId === undefined) { errors.push(`Row ${i + 1}: station not found: "${depName}"`); continue; }
+    if (arrId === undefined) { errors.push(`Row ${i + 1}: station not found: "${arrName}"`); continue; }
 
     try {
       createTrip({
-        type: row["type"] as any,
-        date: row["date"],
-        departureTime: row["departuretime"],
-        arrivalTime: row["arrivaltime"],
-        timezone: row["timezone"],
-        departureStationId: depId,
-        arrivalStationId: arrId,
-        operator: row["operator"],
-        trainFlightNumber: row["trainflightnumber"],
-        trainName: row["trainname"] || null,
-        vehicleType: row["vehicletype"] || null,
-        vehicleNumber: row["vehiclenumber"] || null,
-        carriageNumber: row["carriagenumber"] || null,
+        type: row["type"] as any, date: row["date"], departureTime: row["departuretime"],
+        arrivalTime: row["arrivaltime"], timezone: row["timezone"],
+        departureStationId: depId, arrivalStationId: arrId,
+        operator: row["operator"], trainFlightNumber: row["trainflightnumber"],
+        trainName: row["trainname"] || null, vehicleType: row["vehicletype"] || null,
+        vehicleNumber: row["vehiclenumber"] || null, carriageNumber: row["carriagenumber"] || null,
         durationMinutes: row["durationminutes"] ? parseInt(row["durationminutes"]) : null,
         distanceKm: row["distancekm"] ? parseFloat(row["distancekm"]) : null,
         cost: row["cost"] ? parseFloat(row["cost"]) : null,
-        currency: row["currency"] || null,
-        seatNumber: row["seatnumber"] || null,
-        seatClass: row["seatclass"] || null,
-        notes: row["notes"] || null,
+        currency: row["currency"] || null, seatNumber: row["seatnumber"] || null,
+        seatClass: row["seatclass"] || null, notes: row["notes"] || null,
       });
       imported++;
     } catch (e: any) {

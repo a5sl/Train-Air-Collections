@@ -42,3 +42,10 @@ export const trips = sqliteTable("trips", {
   createdAt: text("created_at").default(sql`(datetime('now'))`).notNull(),
   updatedAt: text("updated_at").default(sql`(datetime('now'))`).notNull(),
 });
+
+export const operators = sqliteTable("operators", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  name: text("name").notNull(),
+  type: text("type", { enum: ["railway", "airline", "other"] }).notNull(),
+  createdAt: text("created_at").default(sql`(datetime('now'))`).notNull(),
+});
