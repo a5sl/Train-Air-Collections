@@ -50,6 +50,7 @@ export interface Trip {
   trainName: string | null;
   vehicleType: string | null;
   vehicleNumber: string | null;
+  carriageNumber: string | null;
   durationMinutes: number | null;
   distanceKm: number | null;
   cost: number | null;

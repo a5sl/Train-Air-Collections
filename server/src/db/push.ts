@@ -35,6 +35,7 @@ sqlite.exec(`
     train_name TEXT,
     vehicle_type TEXT,
     vehicle_number TEXT,
+    carriage_number TEXT,
     duration_minutes INTEGER,
     distance_km REAL,
     cost REAL,

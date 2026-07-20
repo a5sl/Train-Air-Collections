@@ -30,6 +30,7 @@ interface FormData {
   trainName: string;
   vehicleType: string;
   vehicleNumber: string;
+  carriageNumber: string;
   durationMinutes: number | "";
   distanceKm: number | "";
   cost: number | "";
@@ -52,6 +53,7 @@ const initialForm: FormData = {
   trainName: "",
   vehicleType: "",
   vehicleNumber: "",
+  carriageNumber: "",
   durationMinutes: "",
   distanceKm: "",
   cost: "",
@@ -266,6 +268,7 @@ export default function AddTrip() {
         trainName: form.trainName || undefined,
         vehicleType: form.vehicleType || undefined,
         vehicleNumber: form.vehicleNumber || undefined,
+        carriageNumber: form.carriageNumber || undefined,
         durationMinutes: form.durationMinutes || undefined,
         distanceKm: form.distanceKm || undefined,
         cost: form.cost || undefined,
@@ -423,9 +426,14 @@ export default function AddTrip() {
             )}
             <div>
               <label className="label-text">{form.type === "train" ? "车辆号码" : "注册号"}</label>
-              <input className="input-field" placeholder={form.type === "train" ? "如: CRH2A-2158" : "如: JA123A"}
-                value={form.vehicleNumber} onChange={e => update({ vehicleNumber: e.target.value })} />
-            </div>
+                <input className="input-field" placeholder={form.type === "train" ? "如: CRH2A-2158" : "如: JA123A"}
+                  value={form.vehicleNumber} onChange={e => update({ vehicleNumber: e.target.value })} />
+              </div>
+              <div>
+                <label className="label-text">车厢号</label>
+                <input className="input-field" placeholder="如: 2, 13" value={form.carriageNumber}
+                  onChange={e => update({ carriageNumber: e.target.value })} />
+              </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="label-text">总用时 (分钟)</label>

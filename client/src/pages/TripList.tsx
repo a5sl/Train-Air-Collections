@@ -164,6 +164,7 @@ export default function TripList() {
                       {trip.trainName && <span>{trip.trainName}</span>}
                       {trip.vehicleType && <span>{trip.vehicleType}</span>}
                       {trip.vehicleNumber && <span>#{trip.vehicleNumber}</span>}
+                      {trip.carriageNumber && <span>{trip.carriageNumber}车厢</span>}
                       {trip.seatClass && <span>{trip.seatClass}</span>}
                       {trip.seatNumber && <span>{trip.seatNumber}座</span>}
                     </div>

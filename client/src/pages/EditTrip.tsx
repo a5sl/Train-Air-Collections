@@ -30,6 +30,7 @@ interface FormData {
   trainName: string;
   vehicleType: string;
   vehicleNumber: string;
+  carriageNumber: string;
   durationMinutes: number | "";
   distanceKm: number | "";
   cost: number | "";
@@ -230,6 +231,7 @@ export default function EditTrip() {
           trainName: trip.trainName || "",
           vehicleType: trip.vehicleType || "",
           vehicleNumber: trip.vehicleNumber || "",
+          carriageNumber: trip.carriageNumber || "",
           durationMinutes: trip.durationMinutes ?? "",
           distanceKm: trip.distanceKm ?? "",
           cost: trip.cost ?? "",
@@ -289,6 +291,7 @@ export default function EditTrip() {
         trainName: form.trainName || undefined,
         vehicleType: form.vehicleType || undefined,
         vehicleNumber: form.vehicleNumber || undefined,
+        carriageNumber: form.carriageNumber || undefined,
         durationMinutes: form.durationMinutes || undefined,
         distanceKm: form.distanceKm || undefined,
         cost: form.cost || undefined,
@@ -464,8 +467,13 @@ export default function EditTrip() {
             <div>
               <label className="label-text">{form.type === "train" ? "车辆号码" : "注册号"}</label>
               <input className="input-field" placeholder={form.type === "train" ? "如: CRH2A-2158" : "如: JA123A"}
-                value={form.vehicleNumber} onChange={e => update({ vehicleNumber: e.target.value })} />
-            </div>
+                  value={form.vehicleNumber} onChange={e => update({ vehicleNumber: e.target.value })} />
+              </div>
+              <div>
+                <label className="label-text">车厢号</label>
+                <input className="input-field" placeholder="如: 2, 13" value={form.carriageNumber}
+                  onChange={e => update({ carriageNumber: e.target.value })} />
+              </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="label-text">总用时 (分钟)</label>

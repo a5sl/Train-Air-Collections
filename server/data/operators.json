@@ -430,5 +430,11 @@
     "type": "airline",
     "id": 72,
     "createdAt": "2026-07-18T13:59:17.396Z"
+  },
+  {
+    "id": 73,
+    "name": "JR九州新幹線",
+    "type": "railway",
+    "createdAt": "2026-07-20T00:00:00.000Z"
   }
 ]

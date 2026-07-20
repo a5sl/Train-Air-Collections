@@ -31,6 +31,7 @@ export const trips = sqliteTable("trips", {
   trainName: text("train_name"),
   vehicleType: text("vehicle_type"),
   vehicleNumber: text("vehicle_number"),
+  carriageNumber: text("carriage_number"),
   durationMinutes: integer("duration_minutes"),
   distanceKm: real("distance_km"),
   cost: real("cost"),

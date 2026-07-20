@@ -132,6 +132,7 @@ export function importTripsFromCSV(csvText: string): { imported: number; errors:
         trainName: row["trainname"] || null,
         vehicleType: row["vehicletype"] || null,
         vehicleNumber: row["vehiclenumber"] || null,
+        carriageNumber: row["carriagenumber"] || null,
         durationMinutes: row["durationminutes"] ? parseInt(row["durationminutes"]) : null,
         distanceKm: row["distancekm"] ? parseFloat(row["distancekm"]) : null,
         cost: row["cost"] ? parseFloat(row["cost"]) : null,
