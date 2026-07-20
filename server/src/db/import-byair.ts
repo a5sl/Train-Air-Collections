@@ -29,9 +29,9 @@ export function importByAirFlights(csvPath: string): { imported: number; skipped
   const ops = db.select().from(operators).where(eq(operators.type, "airline")).all();
   ops.forEach(o => { if (o.code && !opMap.has(o.code.toUpperCase())) opMap.set(o.code.toUpperCase(), o.name); });
 
-  const stationMap = new Map<string, number>(); // code -> id
+  const stationMap = new Map<string, { id: number; timezone: string | null }>(); // code -> id + tz
   const sts = db.select().from(stations).all();
-  sts.forEach(s => { if (s.code) stationMap.set(s.code.toUpperCase(), s.id); });
+  sts.forEach(s => { if (s.code) stationMap.set(s.code.toUpperCase(), { id: s.id, timezone: s.timezone || null }); });
 
   // Check existing trips
   const existingKeys = new Set<string>();
@@ -79,10 +79,11 @@ export function importByAirFlights(csvPath: string): { imported: number; skipped
     }
 
     // Station lookup by IATA code
-    const depId = stationMap.get(depCode.toUpperCase());
-    const arrId = stationMap.get(arrCode.toUpperCase());
-    if (depId === undefined) { errors.push(`Row ${i + 1}: departure station "${depCode}" not found`); continue; }
-    if (arrId === undefined) { errors.push(`Row ${i + 1}: arrival station "${arrCode}" not found`); continue; }
+    const depSt = stationMap.get(depCode.toUpperCase());
+    const arrSt = stationMap.get(arrCode.toUpperCase());
+    if (!depSt) { errors.push(`Row ${i + 1}: departure station "${depCode}" not found`); continue; }
+    if (!arrSt) { errors.push(`Row ${i + 1}: arrival station "${arrCode}" not found`); continue; }
+    const timezone = depSt.timezone || "Asia/Shanghai";
 
     // Build notes
     const notesParts: string[] = [];
@@ -101,9 +102,9 @@ export function importByAirFlights(csvPath: string): { imported: number; skipped
         date: flightDate,
         departureTime: depTime,
         arrivalTime: arrTime,
-        timezone: "Asia/Shanghai",
-        departureStationId: depId,
-        arrivalStationId: arrId,
+        timezone: timezone,
+        departureStationId: depSt.id,
+        arrivalStationId: arrSt.id,
         operator: operatorName,
         trainFlightNumber: flightCode,
         seatNumber: row["Seat Number"]?.trim() || null,

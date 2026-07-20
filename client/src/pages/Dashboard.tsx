@@ -28,7 +28,7 @@ const CURRENCY_SYMBOLS: Record<string, string> = {
 
 
 function formatDuration(minutes: number | null): string {
-  if (!minutes) return "-";
+  if (minutes === null || minutes === 0) return minutes === 0 ? "0m" : "-";
   const h = Math.floor(minutes / 60);
   const m = minutes % 60;
   return h > 0 ? `${h}h ${m}m` : `${m}m`;

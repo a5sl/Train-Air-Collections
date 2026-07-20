@@ -47,6 +47,7 @@ export function seedStations(): number {
     db.insert(stations).values({
       name: s.name, code: s.code, city: s.city, country: s.country,
       latitude: s.lat, longitude: s.lng, type: s.type, createdAt: now,
+      timezone: null,
     }).run();
   }
   saveDb();

@@ -36,6 +36,7 @@ export async function initDb() {
     latitude REAL,
     longitude REAL,
     type TEXT NOT NULL CHECK(type IN ('train_station','airport')),
+    timezone TEXT,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   )`);
 

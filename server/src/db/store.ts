@@ -64,6 +64,7 @@ export function createStation(data: Omit<Station, "id" | "createdAt">): Station 
     latitude: data.latitude,
     longitude: data.longitude,
     type: data.type,
+    timezone: null,
     createdAt: now,
   }).returning().get() as Station;
   saveDb();

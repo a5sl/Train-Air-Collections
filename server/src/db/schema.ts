@@ -10,6 +10,7 @@ export const stations = sqliteTable("stations", {
   latitude: real("latitude"),
   longitude: real("longitude"),
   type: text("type", { enum: ["train_station", "airport"] }).notNull(),
+  timezone: text("timezone"),
   createdAt: text("created_at").default(sql`(datetime('now'))`).notNull(),
 });
 
