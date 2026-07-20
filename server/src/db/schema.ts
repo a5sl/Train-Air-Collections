@@ -46,6 +46,7 @@ export const trips = sqliteTable("trips", {
 export const operators = sqliteTable("operators", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   name: text("name").notNull(),
+  code: text("code"),
   type: text("type", { enum: ["railway", "airline", "other"] }).notNull(),
   createdAt: text("created_at").default(sql`(datetime('now'))`).notNull(),
 });

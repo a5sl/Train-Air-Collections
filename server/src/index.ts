@@ -4,6 +4,7 @@ import { initDb } from "./db/index";
 import tripsRouter from "./routes/trips";
 import stationsRouter from "./routes/stations";
 import { seedStations, seedOperatorsData, getOperators, addOperator, importTripsFromCSV } from "./db/seed";
+import { importByAirFlights } from "./db/import-byair";
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -54,6 +55,21 @@ app.post("/api/trips/import-csv", (req, res) => {
       return;
     }
     const result = importTripsFromCSV(csvText);
+    res.json({ success: true, data: result });
+  } catch (e: any) {
+    res.status(400).json({ success: false, error: e.message });
+  }
+});
+
+// ---- byAir CSV Import ----
+app.post("/api/trips/import-byair", (req, res) => {
+  try {
+    const csvPath = req.body?.csvPath;
+    if (!csvPath) {
+      res.status(400).json({ success: false, error: "csvPath is required" });
+      return;
+    }
+    const result = importByAirFlights(csvPath);
     res.json({ success: true, data: result });
   } catch (e: any) {
     res.status(400).json({ success: false, error: e.message });

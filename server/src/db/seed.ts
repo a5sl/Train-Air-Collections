@@ -16,16 +16,17 @@ export interface Operator {
 }
 
 export function getOperators(q?: string) {
-  if (!q) return db.select().from(operators).limit(100).all() as Operator[];
+  if (!q) return db.select().from(operators).orderBy(sql`type, name`).all() as Operator[];
   return db.select().from(operators).where(
-    sql`${operators.name} LIKE ${"%" + q + "%"}`
-  ).limit(20).all() as Operator[];
+    sql`(${operators.name} LIKE ${"%" + q + "%"} OR ${operators.code} LIKE ${q.toUpperCase() + "%"})`
+  ).orderBy(sql`CASE WHEN ${operators.code} LIKE ${q.toUpperCase() + "%"} THEN 0 ELSE 1 END, name`).limit(20).all() as Operator[];
 }
 
 export function addOperator(data: { name: string; type: string }) {
   const now = new Date().toISOString();
   const result = db.insert(operators).values({
     name: data.name,
+    code: null,
     type: data.type as any,
     createdAt: now,
   }).returning().get() as Operator;

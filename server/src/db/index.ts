@@ -68,6 +68,7 @@ export async function initDb() {
   sqlDb.run(`CREATE TABLE IF NOT EXISTS operators (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
+    code TEXT,
     type TEXT NOT NULL CHECK(type IN ('railway','airline','other')),
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   )`);
