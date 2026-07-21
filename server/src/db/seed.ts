@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { db, saveDb } from "./index";
+import { seedDb, saveSeedDb } from "./index";
 import { stations, operators } from "./schema";
 import { getStations, createTrip } from "./store";
 import { chinaRailStations } from "./seed-china-rail";
@@ -16,55 +16,55 @@ export interface Operator {
 }
 
 export function getOperators(q?: string) {
-  if (!q) return db.select().from(operators).orderBy(sql`type, name`).all() as Operator[];
-  return db.select().from(operators).where(
+  if (!q) return seedDb.select().from(operators).orderBy(sql`type, name`).all() as Operator[];
+  return seedDb.select().from(operators).where(
     sql`(${operators.name} LIKE ${"%" + q + "%"} OR ${operators.code} LIKE ${q.toUpperCase() + "%"})`
   ).orderBy(sql`CASE WHEN ${operators.code} LIKE ${q.toUpperCase() + "%"} THEN 0 ELSE 1 END, name`).limit(20).all() as Operator[];
 }
 
 export function addOperator(data: { name: string; type: string }) {
   const now = new Date().toISOString();
-  const result = db.insert(operators).values({
+  const result = seedDb.insert(operators).values({
     name: data.name,
     code: null,
     type: data.type as any,
     createdAt: now,
   }).returning().get() as Operator;
-  saveDb();
+  saveSeedDb();
   return result;
 }
 
 // --- Seed Functions (use raw SQL for performance) ---
 
 export function seedStations(): number {
-  const count = db.select({ c: sql`count(*)` }).from(stations).get() as any;
+  const count = seedDb.select().from(stations).get() as any;
   if (count.c > 0) return count.c as number;
 
   const all = [...chinaRailStations, ...chinaAirports, ...intlAirports, ...intlRailStations];
   const now = new Date().toISOString();
   for (let i = 0; i < all.length; i++) {
     const s = all[i];
-    db.insert(stations).values({
+    seedDb.insert(stations).values({
       name: s.name, code: s.code, city: s.city, country: s.country,
       latitude: s.lat, longitude: s.lng, type: s.type, createdAt: now,
       timezone: null,
     }).run();
   }
-  saveDb();
+  saveSeedDb();
   return all.length;
 }
 
 export function seedOperatorsData(): number {
-  const count = db.select({ c: sql`count(*)` }).from(operators).get() as any;
+  const count = seedDb.select().from(operators).get() as any;
   if (count.c > 0) return count.c as number;
 
   const now = new Date().toISOString();
   for (const o of seedOperators) {
-    db.insert(operators).values({
+    seedDb.insert(operators).values({
       name: o.name, type: o.type as any, createdAt: now,
     }).run();
   }
-  saveDb();
+  saveSeedDb();
   return seedOperators.length;
 }
 
@@ -76,7 +76,7 @@ export function importTripsFromCSV(csvText: string): { imported: number; errors:
   if (lines.length < 2) return { imported: 0, errors: ["CSV must have a header row and at least one data row"] };
 
   const header = lines[0].split(",").map(h => h.trim().toLowerCase());
-  const requiredCols = ["type","date","departuretime","arrivaltime","timezone","departurestationname","arrivalstationname","operator","trainflightnumber"];
+  const requiredCols = ["type","departuredate","arrivaldate","departuretime","arrivaltime","departurestationname","arrivalstationname","operator","trainflightnumber"];
   for (const col of requiredCols) {
     if (!header.includes(col)) {
       return { imported: 0, errors: [`Missing required column: ${col}`] };
@@ -112,8 +112,10 @@ export function importTripsFromCSV(csvText: string): { imported: number; errors:
 
     try {
       createTrip({
-        type: row["type"] as any, date: row["date"], departureTime: row["departuretime"],
-        arrivalTime: row["arrivaltime"], timezone: row["timezone"],
+        type: row["type"] as any, departureDate: row["departuredate"] || row["date"], arrivalDate: row["arrivaldate"] || row["date"],
+        departureTime: row["departuretime"], arrivalTime: row["arrivaltime"],
+        departureTimezone: row["departurestationname"] === row["arrivalstationname"] ? "Asia/Shanghai" : "Asia/Shanghai",
+        arrivalTimezone: row["departurestationname"] === row["arrivalstationname"] ? "Asia/Shanghai" : "Asia/Shanghai",
         departureStationId: depId, arrivalStationId: arrId,
         operator: row["operator"], trainFlightNumber: row["trainflightnumber"],
         trainName: row["trainname"] || null, vehicleType: row["vehicletype"] || null,

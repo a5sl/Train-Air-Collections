@@ -44,7 +44,7 @@ type MonthlyRow = { key: string; label: string; total: number };
 function groupByMonth(trips: Trip[]): MonthlyRow[] {
   const map = new Map<string, number>();
   for (const t of trips) {
-    const key = t.date.slice(0, 7);
+    const key = t.departureDate.slice(0, 7);
     map.set(key, (map.get(key) || 0) + 1);
   }
   return Array.from(map.entries())
@@ -174,7 +174,7 @@ export default function Dashboard() {
     });
 
     const thisYear = new Date().getFullYear().toString();
-    const thisYearTrips = trips.filter((t) => t.date.startsWith(thisYear));
+    const thisYearTrips = trips.filter((t) => t.departureDate.startsWith(thisYear));
 
     const monthly = groupByMonth(trips);
 

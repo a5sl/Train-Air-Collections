@@ -14,14 +14,12 @@ Thumbs.db
 .vscode/
 .idea/
 
-# Data files (generated at runtime)
-server/data/trips.json
 
 # Source data for stations/airports (large shapefiles, not part of repo)
 rail_airport_stat/
 
-# Personal trip database (independent from stations data)
-trips.db
+# User database (contains personal trips, not for version control)
+server/data/user.db
 
 # Logs
 *.log

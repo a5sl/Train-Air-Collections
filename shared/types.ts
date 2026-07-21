@@ -18,10 +18,12 @@ export interface Station {
 export interface Trip {
   id: number;
   type: TransportType;
-  date: string;                 // "2026-07-18"
+  departureDate: string;        // "2026-07-18"
+  arrivalDate: string;          // "2026-07-18"
   departureTime: string;        // "14:30"
   arrivalTime: string;          // "16:45"
-  timezone: string;             // "Asia/Shanghai"
+  departureTimezone: string;    // "Asia/Shanghai"
+  arrivalTimezone: string;      // "Asia/Tokyo"
   departureStationId: number;
   arrivalStationId: number;
   operator: string;             // e.g., "中国国铁", "全日空"
@@ -46,10 +48,12 @@ export interface Trip {
 
 export interface TripCreateInput {
   type: TransportType;
-  date: string;
+  departureDate: string;
+  arrivalDate: string;
   departureTime: string;
   arrivalTime: string;
-  timezone: string;
+  departureTimezone: string;
+  arrivalTimezone: string;
   departureStationId: number;
   arrivalStationId: number;
   operator: string;

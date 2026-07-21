@@ -9,10 +9,18 @@ export default function TripList() {
   const [loading, setLoading] = useState(true);
   const [importing, setImporting] = useState(false);
   const [seedMsg, setSeedMsg] = useState("");
-  const [filter, setFilter] = useState<"all" | "train" | "flight">("all");
+  const [filter, setFilter] = useState<"all" | "train" | "flight">(() => {
+    const saved = localStorage.getItem("tripListFilter");
+    return (saved === "train" || saved === "flight") ? saved : "all";
+  });
   const [searchQuery, setSearchQuery] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
+
+  const updateFilter = (val: "all" | "train" | "flight") => {
+    setFilter(val);
+    localStorage.setItem("tripListFilter", val);
+  };
 
   const loadTrips = () => {
     setLoading(true);
@@ -103,7 +111,7 @@ export default function TripList() {
         </div>
         <div className="flex gap-1 bg-gray-100 rounded-lg p-1">
           {(["all", "train", "flight"] as const).map(f => (
-            <button key={f} onClick={() => setFilter(f)}
+            <button key={f} onClick={() => updateFilter(f)}
               className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
                 filter === f ? "bg-terracotta-100 text-terracotta-700 shadow-sm" : "text-ink-400 hover:text-ink-700"
               }`}>
@@ -152,7 +160,7 @@ export default function TripList() {
                   <div className="mt-2 flex items-center gap-3 text-xs text-gray-400 flex-wrap">
                     <span className="flex items-center gap-1">
                       <Clock className="w-3 h-3" />
-                      {trip.date} {trip.departureTime} - {trip.arrivalTime}
+                      {trip.departureDate} {trip.departureTime} - {trip.arrivalTime}
                     </span>
                     {trip.durationMinutes && <span>{formatDuration(trip.durationMinutes)}</span>}
                     {trip.distanceKm && (

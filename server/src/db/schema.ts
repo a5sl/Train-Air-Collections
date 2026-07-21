@@ -17,10 +17,12 @@ export const stations = sqliteTable("stations", {
 export const trips = sqliteTable("trips", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   type: text("type", { enum: ["train", "flight"] }).notNull(),
-  date: text("date").notNull(),
+  departureDate: text("departure_date").notNull(),
+  arrivalDate: text("arrival_date").notNull(),
   departureTime: text("departure_time").notNull(),
   arrivalTime: text("arrival_time").notNull(),
-  timezone: text("timezone").notNull(),
+  departureTimezone: text("departure_timezone").notNull(),
+  arrivalTimezone: text("arrival_timezone").notNull(),
   departureStationId: integer("departure_station_id")
     .notNull()
     .references(() => stations.id),

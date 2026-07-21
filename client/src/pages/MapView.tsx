@@ -450,7 +450,7 @@ export default function MapView() {
                       {trip.departureStation?.name} → {trip.arrivalStation?.name}
                     </p>
                     <p className="text-ink-400 text-xs">
-                      {trip.date} | {trip.operator}
+                      {trip.departureDate} | {trip.operator}
                     </p>
                     {trip.distanceKm && (
                       <p className="text-ink-400 text-xs">{trip.distanceKm} km</p>

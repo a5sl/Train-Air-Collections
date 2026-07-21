@@ -19,10 +19,10 @@ const CURRENCIES = ["CNY", "USD", "EUR", "JPY", "GBP", "HKD", "KRW", "AUD", "CAD
 
 interface FormData {
   type: "train" | "flight";
-  date: string;
+  departureDate: string;
+  arrivalDate: string;
   departureTime: string;
   arrivalTime: string;
-  timezone: string;
   departureStation: Station | null;
   arrivalStation: Station | null;
   operator: string;
@@ -42,10 +42,10 @@ interface FormData {
 
 const initialForm: FormData = {
   type: "train",
-  date: new Date().toISOString().slice(0, 10),
+  departureDate: new Date().toISOString().slice(0, 10),
+  arrivalDate: new Date().toISOString().slice(0, 10),
   departureTime: "",
-  arrivalTime: "",
-  timezone: "Asia/Shanghai",
+  arrivalTime: "", 
   departureStation: null,
   arrivalStation: null,
   operator: "",
@@ -249,7 +249,7 @@ export default function AddTrip() {
       alert("请选择起止站点");
       return;
     }
-    if (!form.date || !form.departureTime || !form.arrivalTime || !form.operator || !form.trainFlightNumber) {
+    if (!form.departureDate || !form.departureTime || !form.arrivalTime || !form.operator || !form.trainFlightNumber) {
       alert("请填写所有必填项");
       return;
     }
@@ -257,10 +257,12 @@ export default function AddTrip() {
     try {
       await api.createTrip({
         type: form.type,
-        date: form.date,
+        departureDate: form.departureDate,
+        arrivalDate: form.arrivalDate,
         departureTime: form.departureTime,
         arrivalTime: form.arrivalTime,
-        timezone: form.timezone,
+        departureTimezone: form.departureStation?.timezone || "Asia/Shanghai",
+        arrivalTimezone: form.arrivalStation?.timezone || "Asia/Shanghai",
         departureStationId: form.departureStation.id,
         arrivalStationId: form.arrivalStation.id,
         operator: form.operator,
@@ -321,11 +323,12 @@ export default function AddTrip() {
         <div className="card p-5 space-y-4">
           <h3 className="text-xs font-semibold text-ink-400 uppercase tracking-wider">必填</h3>
 
+          {/* Departure row */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
-              <label className="label-text">日期 *</label>
-              <input type="date" className="input-field" value={form.date}
-                onChange={e => update({ date: e.target.value })} required />
+              <label className="label-text">出发日期 *</label>
+              <input type="date" className="input-field" value={form.departureDate}
+                onChange={e => update({ departureDate: e.target.value, arrivalDate: e.target.value })} required />
             </div>
             <div>
               <label className="label-text">出发时间 *</label>
@@ -333,9 +336,30 @@ export default function AddTrip() {
                 onChange={e => update({ departureTime: e.target.value })} required />
             </div>
             <div>
+              <label className="label-text">出发时区</label>
+              <div className="input-field bg-ink-50 text-ink-500 flex items-center">
+                {form.departureStation?.timezone || "— 选择站点后自动填入"}
+              </div>
+            </div>
+          </div>
+          {/* Arrival row */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label className="label-text">到达日期</label>
+              <input type="date" className="input-field" value={form.arrivalDate}
+                onChange={e => update({ arrivalDate: e.target.value })} />
+              <p className="text-xs text-ink-400 mt-1">默认与出发日期相同，过夜旅途可修改</p>
+            </div>
+            <div>
               <label className="label-text">到达时间 *</label>
               <input type="time" className="input-field" value={form.arrivalTime}
                 onChange={e => update({ arrivalTime: e.target.value })} required />
+            </div>
+            <div>
+              <label className="label-text">到达时区</label>
+              <div className="input-field bg-ink-50 text-ink-500 flex items-center">
+                {form.arrivalStation?.timezone || "— 选择站点后自动填入"}
+              </div>
             </div>
           </div>
 
@@ -345,18 +369,7 @@ export default function AddTrip() {
             </p>
           )}
 
-          <div>
-            <label className="label-text">时区 *</label>
-            <div className="relative">
-              <select className="select-field appearance-none pr-8" value={form.timezone}
-                onChange={e => update({ timezone: e.target.value })} required>
-                {TIMEZONES.map(tz => (
-                  <option key={tz} value={tz}>{tz}</option>
-                ))}
-              </select>
-              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-            </div>
-          </div>
+
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <StationPicker

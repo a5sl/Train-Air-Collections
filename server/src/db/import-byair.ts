@@ -1,5 +1,5 @@
 import fs from "fs";
-import { db, saveDb } from "./index";
+import { seedDb, userDb, saveUserDb } from "./index";
 import { stations, operators, trips } from "./schema";
 import { eq, and } from "drizzle-orm";
 
@@ -26,16 +26,16 @@ export function importByAirFlights(csvPath: string): { imported: number; skipped
 
   // Build lookup maps
   const opMap = new Map<string, string>(); // code -> name
-  const ops = db.select().from(operators).where(eq(operators.type, "airline")).all();
+  const ops = seedDb.select().from(operators).where(eq(operators.type, "airline")).all();
   ops.forEach(o => { if (o.code && !opMap.has(o.code.toUpperCase())) opMap.set(o.code.toUpperCase(), o.name); });
 
   const stationMap = new Map<string, { id: number; timezone: string | null }>(); // code -> id + tz
-  const sts = db.select().from(stations).all();
+  const sts = seedDb.select().from(stations).all();
   sts.forEach(s => { if (s.code) stationMap.set(s.code.toUpperCase(), { id: s.id, timezone: s.timezone || null }); });
 
   // Check existing trips
   const existingKeys = new Set<string>();
-  const allTrips = db.select().from(trips).all();
+  const allTrips = userDb.select().from(trips).all();
   allTrips.forEach(t => existingKeys.add(`${t.date}|${t.trainFlightNumber}`));
 
   let imported = 0;
@@ -97,12 +97,14 @@ export function importByAirFlights(csvPath: string): { imported: number; skipped
     if (csvNotes) notesParts.push(csvNotes);
 
     try {
-      db.insert(trips).values({
+      userDb.insert(trips).values({
         type: "flight",
-        date: flightDate,
+        departureDate: flightDate,
+        arrivalDate: flightDate,
         departureTime: depTime,
         arrivalTime: arrTime,
-        timezone: timezone,
+        departureTimezone: timezone,
+        arrivalTimezone: arrSt.timezone || timezone,
         departureStationId: depSt.id,
         arrivalStationId: arrSt.id,
         operator: operatorName,
@@ -119,7 +121,7 @@ export function importByAirFlights(csvPath: string): { imported: number; skipped
     }
   }
 
-  saveDb();
+  saveUserDb();
   return { imported, skipped, errors };
 }
 

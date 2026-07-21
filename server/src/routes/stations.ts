@@ -1,5 +1,5 @@
 import { Router, Request, Response } from "express";
-import { db, saveDb } from "../db/index";
+import { seedDb, saveSeedDb } from "../db/index";
 import { stations } from "../db/schema";
 import { eq, sql } from "drizzle-orm";
 
@@ -11,7 +11,7 @@ router.get("/", (req: Request, res: Response) => {
     const q = (req.query.q as string || "").toLowerCase();
     const type = req.query.type as string | undefined;
 
-    let query = db.select().from(stations);
+    let query = seedDb.select().from(stations);
 
     if (q) {
       query = query.where(sql`(
@@ -37,7 +37,7 @@ router.get("/", (req: Request, res: Response) => {
 // GET /api/stations/:id
 router.get("/:id", (req: Request, res: Response) => {
   try {
-    const station = db.select().from(stations).where(eq(stations.id, parseInt(req.params.id))).get();
+    const station = seedDb.select().from(stations).where(eq(stations.id, parseInt(req.params.id))).get();
     if (!station) { res.status(404).json({ success: false, error: "Station not found" }); return; }
     res.json({ success: true, data: station });
   } catch (err: any) {
@@ -50,12 +50,12 @@ router.post("/", (req: Request, res: Response) => {
   try {
     const now = new Date().toISOString();
     const data = req.body;
-    const result = db.insert(stations).values({
+    const result = seedDb.insert(stations).values({
       name: data.name, code: data.code ?? null, city: data.city, country: data.country,
       latitude: data.latitude ?? null, longitude: data.longitude ?? null,
       type: data.type, createdAt: now,
     }).returning().get();
-    saveDb();
+    saveSeedDb();
     res.status(201).json({ success: true, data: result });
   } catch (err: any) {
     res.status(400).json({ success: false, error: err.message });

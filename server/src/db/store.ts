@@ -1,5 +1,5 @@
 import { eq, desc } from "drizzle-orm";
-import { db, saveDb } from "./index";
+import { seedDb, userDb, saveSeedDb, saveUserDb } from "./index";
 import { stations, trips } from "./schema";
 
 // --- Station types (unchanged from JSON version) ---
@@ -21,10 +21,12 @@ export interface Station {
 export interface Trip {
   id: number;
   type: "train" | "flight";
-  date: string;
+  departureDate: string;
+  arrivalDate: string;
   departureTime: string;
   arrivalTime: string;
-  timezone: string;
+  departureTimezone: string;
+  arrivalTimezone: string;
   departureStationId: number;
   arrivalStationId: number;
   operator: string;
@@ -47,16 +49,16 @@ export interface Trip {
 // --- Station CRUD ---
 
 export function getStations(): Station[] {
-  return db.select().from(stations).all() as Station[];
+  return seedDb.select().from(stations).all() as Station[];
 }
 
 export function getStation(id: number): Station | undefined {
-  return db.select().from(stations).where(eq(stations.id, id)).get() as Station | undefined;
+  return seedDb.select().from(stations).where(eq(stations.id, id)).get() as Station | undefined;
 }
 
 export function createStation(data: Omit<Station, "id" | "createdAt">): Station {
   const now = new Date().toISOString();
-  const result = db.insert(stations).values({
+  const result = seedDb.insert(stations).values({
     name: data.name,
     code: data.code,
     city: data.city,
@@ -67,29 +69,31 @@ export function createStation(data: Omit<Station, "id" | "createdAt">): Station 
     timezone: null,
     createdAt: now,
   }).returning().get() as Station;
-  saveDb();
+  saveSeedDb();
   return result;
 }
 
 // --- Trip CRUD ---
 
 export function getTrips(): Trip[] {
-  const allTrips = db.select().from(trips).orderBy(desc(trips.date), desc(trips.id)).all() as Trip[];
+  const allTrips = seedDb.select().from(trips).orderBy(desc(trips.departureDate), desc(trips.id)).all() as Trip[];
   return allTrips;
 }
 
 export function getTrip(id: number): Trip | undefined {
-  return db.select().from(trips).where(eq(trips.id, id)).get() as Trip | undefined;
+  return seedDb.select().from(trips).where(eq(trips.id, id)).get() as Trip | undefined;
 }
 
 export function createTrip(data: Omit<Trip, "id" | "createdAt" | "updatedAt">): Trip {
   const now = new Date().toISOString();
-  const result = db.insert(trips).values({
+  const result = userDb.insert(trips).values({
     type: data.type,
-    date: data.date,
+    departureDate: data.departureDate,
+    arrivalDate: data.arrivalDate,
     departureTime: data.departureTime,
     arrivalTime: data.arrivalTime,
-    timezone: data.timezone,
+    departureTimezone: data.departureTimezone,
+    arrivalTimezone: data.arrivalTimezone,
     departureStationId: data.departureStationId,
     arrivalStationId: data.arrivalStationId,
     operator: data.operator,
@@ -108,7 +112,7 @@ export function createTrip(data: Omit<Trip, "id" | "createdAt" | "updatedAt">): 
     createdAt: now,
     updatedAt: now,
   }).returning().get() as Trip;
-  saveDb();
+  saveSeedDb();
   return result;
 }
 
@@ -116,10 +120,12 @@ export function updateTrip(id: number, data: Partial<Omit<Trip, "id" | "createdA
   const now = new Date().toISOString();
   const updateData: Record<string, any> = { updatedAt: now };
   if (data.type !== undefined) updateData.type = data.type;
-  if (data.date !== undefined) updateData.date = data.date;
+  if (data.departureDate !== undefined) updateData.departureDate = data.departureDate;
+  if (data.arrivalDate !== undefined) updateData.arrivalDate = data.arrivalDate;
   if (data.departureTime !== undefined) updateData.departureTime = data.departureTime;
   if (data.arrivalTime !== undefined) updateData.arrivalTime = data.arrivalTime;
-  if (data.timezone !== undefined) updateData.timezone = data.timezone;
+  if (data.departureTimezone !== undefined) updateData.departureTimezone = data.departureTimezone;
+  if (data.arrivalTimezone !== undefined) updateData.arrivalTimezone = data.arrivalTimezone;
   if (data.departureStationId !== undefined) updateData.departureStationId = data.departureStationId;
   if (data.arrivalStationId !== undefined) updateData.arrivalStationId = data.arrivalStationId;
   if (data.operator !== undefined) updateData.operator = data.operator;
@@ -136,15 +142,15 @@ export function updateTrip(id: number, data: Partial<Omit<Trip, "id" | "createdA
   if (data.seatClass !== undefined) updateData.seatClass = data.seatClass;
   if (data.notes !== undefined) updateData.notes = data.notes;
 
-  const result = db.update(trips).set(updateData).where(eq(trips.id, id)).returning().get() as Trip | undefined;
-  if (result) saveDb();
+  const result = userDb.update(trips).set(updateData).where(eq(trips.id, id)).returning().get() as Trip | undefined;
+  if (result) saveSeedDb();
   return result ?? null;
 }
 
 export function deleteTrip(id: number): boolean {
-  const result = db.delete(trips).where(eq(trips.id, id)).run();
+  const result = userDb.delete(trips).where(eq(trips.id, id)).run();
   if (result.changes > 0) {
-    saveDb();
+    saveSeedDb();
     return true;
   }
   return false;
