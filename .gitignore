@@ -13,7 +13,7 @@ Thumbs.db
 # IDE
 .vscode/
 .idea/
-
+.codegraph/
 
 # Source data for stations/airports (large shapefiles, not part of repo)
 rail_airport_stat/
