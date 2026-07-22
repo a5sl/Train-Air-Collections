@@ -85,4 +85,7 @@ export const seedOperators = [
   // Oceanian Airlines
   { name:"澳洲航空 (Qantas)", type:"airline"},
   { name:"新西兰航空 (Air New Zealand)", type:"airline"},
+  { name:"成都航空", type:"airline"},
+  { name:"东海航空", type:"airline"},
+  { name:"江西航空", type:"airline"},
 ];

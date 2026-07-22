@@ -197,6 +197,25 @@ function StationPicker({
   );
 }
 
+function normalizeDate(raw: string): string {
+  if (!raw) return raw;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+  try {
+    const d = new Date(raw);
+    if (!isNaN(d.getTime())) {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, "0");
+      const day = String(d.getDate()).padStart(2, "0");
+      return y + "-" + m + "-" + day;
+    }
+  } catch {}
+  const m = raw.match(/(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})/);
+  if (m) {
+    return m[1] + "-" + String(parseInt(m[2])).padStart(2, "0") + "-" + String(parseInt(m[3])).padStart(2, "0");
+  }
+  return raw;
+}
+
 function calcDuration(dep: string, arr: string): number | "" {
   if (!dep || !arr) return "";
   const [dh, dm] = dep.split(":").map(Number);
@@ -220,8 +239,8 @@ export default function EditTrip() {
       .then((trip) => {
         setForm({
           type: trip.type,
-          departureDate: trip.departureDate,
-      arrivalDate: trip.arrivalDate,
+          departureDate: normalizeDate(trip.departureDate),
+      arrivalDate: normalizeDate(trip.arrivalDate),
           departureTime: trip.departureTime,
           arrivalTime: trip.arrivalTime,
           
@@ -369,7 +388,7 @@ export default function EditTrip() {
             <div>
               <label className="label-text">出发日期 *</label>
               <input type="date" className="input-field" value={form.departureDate}
-                onChange={e => update({ departureDate: e.target.value, arrivalDate: e.target.value })} required />
+                onChange={e => update({ departureDate: e.target.value })} required />
             </div>
             <div>
               <label className="label-text">出发时间 *</label>

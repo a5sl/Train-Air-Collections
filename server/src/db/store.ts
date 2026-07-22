@@ -112,7 +112,7 @@ export function createTrip(data: Omit<Trip, "id" | "createdAt" | "updatedAt">): 
     createdAt: now,
     updatedAt: now,
   }).returning().get() as Trip;
-  saveSeedDb();
+  saveUserDb();
   return result;
 }
 
@@ -143,14 +143,14 @@ export function updateTrip(id: number, data: Partial<Omit<Trip, "id" | "createdA
   if (data.notes !== undefined) updateData.notes = data.notes;
 
   const result = userDb.update(trips).set(updateData).where(eq(trips.id, id)).returning().get() as Trip | undefined;
-  if (result) saveSeedDb();
+  if (result) saveUserDb();
   return result ?? null;
 }
 
 export function deleteTrip(id: number): boolean {
   const result = userDb.delete(trips).where(eq(trips.id, id)).run();
   if (result.changes > 0) {
-    saveSeedDb();
+    saveUserDb();
     return true;
   }
   return false;

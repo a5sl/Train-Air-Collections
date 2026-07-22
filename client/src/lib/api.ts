@@ -24,7 +24,7 @@ export const api = {
   importTripsCSV: (csv: string) =>
     request<{ imported: number; errors: string[] }>("/trips/import-csv", {
       method: "POST",
-      headers: { "Content-Type": "text/plain" },
+      headers: { "Content-Type": "text/csv" },
       body: csv,
     }),
 

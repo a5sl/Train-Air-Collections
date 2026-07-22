@@ -32,4 +32,12 @@ export const chinaAirports = [
   { name:"香港国际机场", code:"HKG", city:"香港", country:"中国", lat:22.3080, lng:113.9185, type:"airport" },
   { name:"澳门国际机场", code:"MFM", city:"澳门", country:"中国", lat:22.1496, lng:113.5916, type:"airport" },
   { name:"台北桃园国际机场", code:"TPE", city:"台北", country:"中国", lat:25.0777, lng:121.2328, type:"airport" },
+  { name:"桂林两江国际机场", code:"KWL", city:"桂林", country:"中国", lat:25.2181, lng:110.0392, type:"airport" },
+  { name:"珠海金湾机场", code:"ZUH", city:"珠海", country:"中国", lat:22.0064, lng:113.3764, type:"airport" },
+  { name:"扬州泰州国际机场", code:"YTY", city:"扬州", country:"中国", lat:32.5617, lng:119.7198, type:"airport" },
+  { name:"宜昌三峡机场", code:"YIH", city:"宜昌", country:"中国", lat:30.6710, lng:111.4410, type:"airport" },
+  { name:"兰州中川国际机场", code:"LHW", city:"兰州", country:"中国", lat:36.5152, lng:103.6205, type:"airport" },
+  { name:"南昌昌北国际机场", code:"KHN", city:"南昌", country:"中国", lat:28.8650, lng:115.9000, type:"airport" },
+  { name:"洛阳北郊机场", code:"LYA", city:"洛阳", country:"中国", lat:34.7411, lng:112.3883, type:"airport" },
+  { name:"柳州白莲机场", code:"LZH", city:"柳州", country:"中国", lat:24.2075, lng:109.3910, type:"airport" },
 ];

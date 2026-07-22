@@ -105,8 +105,65 @@ export function importTripsFromCSV(csvText: string): { imported: number; errors:
       continue;
     }
 
-    let depId = stationByName.get(depName.toLowerCase());
-    let arrId = stationByName.get(arrName.toLowerCase());
+    // Fuzzy station name matching
+    const findStation = (name: string): number | undefined => {
+      const key = name.toLowerCase();
+      // 1. Exact match
+      if (stationByName.has(key)) return stationByName.get(key);
+      // 2. Add 站 suffix (Chinese)
+      if (stationByName.has(key + "站")) return stationByName.get(key + "站");
+      // 3. Add 駅 suffix (Japanese)
+      if (stationByName.has(key + "駅")) return stationByName.get(key + "駅");
+      // 4. Remove trailing 站 or 駅
+      if ((key.endsWith("站") || key.endsWith("駅")) && stationByName.has(key.slice(0, -1))) return stationByName.get(key.slice(0, -1));
+      // 5. Try replacing 站 with 駅 and vice versa
+      if (key.endsWith("站")) {
+        const alt = key.slice(0, -1) + "駅";
+        if (stationByName.has(alt)) return stationByName.get(alt);
+      }
+      if (key.endsWith("駅")) {
+        const alt = key.slice(0, -1) + "站";
+        if (stationByName.has(alt)) return stationByName.get(alt);
+      }
+      return undefined;
+    };
+    // Auto-create unknown stations in seed.db so future imports work
+    let depId = findStation(depName);
+    if (depId === undefined) {
+      try {
+        const newStation = seedDb.insert(stations).values({
+          name: depName,
+          city: depName,
+          country: "中国",
+          type: row["type"] === "flight" ? "airport" : "train_station",
+          createdAt: new Date().toISOString(),
+        }).returning().get() as any;
+        saveSeedDb();
+        if (newStation?.id) {
+          stationByName.set(depName.toLowerCase(), newStation.id);
+          depId = newStation.id;
+          console.log(`Auto-created station: ${depName} (id=${newStation.id})`);
+        }
+      } catch (e: any) { /* ignore duplicate insert errors */ }
+    }
+    let arrId = findStation(arrName);
+    if (arrId === undefined) {
+      try {
+        const newStation = seedDb.insert(stations).values({
+          name: arrName,
+          city: arrName,
+          country: "中国",
+          type: row["type"] === "flight" ? "airport" : "train_station",
+          createdAt: new Date().toISOString(),
+        }).returning().get() as any;
+        saveSeedDb();
+        if (newStation?.id) {
+          stationByName.set(arrName.toLowerCase(), newStation.id);
+          arrId = newStation.id;
+          console.log(`Auto-created station: ${arrName} (id=${newStation.id})`);
+        }
+      } catch (e: any) { /* ignore duplicate insert errors */ }
+    }
     if (depId === undefined) { errors.push(`Row ${i + 1}: station not found: "${depName}"`); continue; }
     if (arrId === undefined) { errors.push(`Row ${i + 1}: station not found: "${arrName}"`); continue; }
 

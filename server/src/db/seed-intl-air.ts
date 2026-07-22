@@ -35,4 +35,5 @@ export const intlAirports = [
   { name:"悉尼金斯福德·史密斯机场", code:"SYD", city:"悉尼", country:"澳大利亚", lat:-33.9399, lng:151.1753, type:"airport" },
   { name:"奥克兰机场", code:"AKL", city:"奥克兰", country:"新西兰", lat:-37.0082, lng:174.7850, type:"airport" },
   { name:"新德里英迪拉·甘地国际机场", code:"DEL", city:"新德里", country:"印度", lat:28.5562, lng:77.1000, type:"airport" },
+  { name:"佐贺机场", code:"HSG", city:"佐贺", country:"日本", lat:33.1497, lng:130.3023, type:"airport" },
 ];

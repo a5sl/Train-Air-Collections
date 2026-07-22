@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
-import { Train, Plane, Clock, MapPin, Trash2, ChevronRight, Search, Upload, Database, Pencil } from "lucide-react";
+import { Train, Plane, Clock, MapPin, Trash2, ChevronRight, Search, Upload, Database, Pencil, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../lib/api";
 import type { Trip } from "../../shared/types";
@@ -14,6 +14,14 @@ export default function TripList() {
     return (saved === "train" || saved === "flight") ? saved : "all";
   });
   const [searchQuery, setSearchQuery] = useState("");
+  const [sortOrder, setSortOrder] = useState<"desc" | "asc">(() => {
+    const saved = localStorage.getItem("tripListSort");
+    return (saved === "asc" || saved === "desc") ? saved : "desc";
+  });
+  const updateSort = (val: "desc" | "asc") => {
+    setSortOrder(val);
+    localStorage.setItem("tripListSort", val);
+  };
   const fileRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
 
@@ -73,7 +81,20 @@ export default function TripList() {
         t.departureStation?.city.toLowerCase().includes(q) ||
         t.arrivalStation?.city.toLowerCase().includes(q)
       );
+    })
+    .sort((a, b) => {
+      const da = parseDate(a.departureDate);
+      const db = parseDate(b.departureDate);
+      return sortOrder === "desc" ? db - da : da - db;
     });
+
+  function parseDate(s: string): number {
+    if (!s) return 0;
+    const m = s.match(/(\d{4})-(\d{2})-(\d{2})/);
+    if (m) return new Date(m[1] + "-" + m[2] + "-" + m[3] + "T00:00:00Z").getTime();
+    const ts = Date.parse(s);
+    return isNaN(ts) ? 0 : ts;
+  }
 
   const formatDuration = (mins: number | null) => {
     if (!mins) return null;
@@ -118,6 +139,15 @@ export default function TripList() {
               {f === "all" ? "全部" : f === "train" ? "铁轨" : "云路"}
             </button>
           ))}
+        </div>
+        <div className="flex gap-1 bg-gray-100 rounded-lg p-1">
+          <button onClick={() => updateSort(sortOrder === "desc" ? "asc" : "desc")}
+            className="px-3 py-1.5 rounded-md text-sm font-medium transition-all text-ink-400 hover:text-ink-700 flex items-center gap-1"
+            title={sortOrder === "desc" ? "当前: 最新在前" : "当前: 最早在前"}>
+            <ArrowUpDown className="w-3.5 h-3.5" />
+            时间
+            {sortOrder === "desc" ? <ArrowDown className="w-3 h-3" /> : <ArrowUp className="w-3 h-3" />}
+          </button>
         </div>
       </div>
 
