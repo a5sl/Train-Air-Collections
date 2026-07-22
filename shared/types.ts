@@ -12,6 +12,7 @@ export interface Station {
   latitude: number | null;
   longitude: number | null;
   type: StationType;
+  timezone?: string | null;
   createdAt: string;
 }
 

@@ -217,13 +217,49 @@ function StationPicker({
   );
 }
 
-function calcDuration(dep: string, arr: string): number | "" {
-  if (!dep || !arr) return "";
-  const [dh, dm] = dep.split(":").map(Number);
-  const [ah, am] = arr.split(":").map(Number);
-  let mins = (ah * 60 + am) - (dh * 60 + dm);
-  if (mins < 0) mins += 24 * 60; // cross midnight
-  return mins;
+function calcDuration(
+  depDate: string, depTime: string, depTz: string,
+  arrDate: string, arrTime: string, arrTz: string
+): number | "" {
+  if (!depTime || !arrTime) return "";
+
+  const getOffset = (tz: string, dateStr: string): number => {
+    try {
+      const dt = new Date(dateStr + "T12:00:00Z");
+      const parts = new Intl.DateTimeFormat("en-US", {
+        timeZone: tz, timeZoneName: "longOffset", hour12: false,
+      }).formatToParts(dt);
+      const off = parts.find(p => p.type === "timeZoneName")?.value;
+      if (off && off.startsWith("GMT")) {
+        const sign = off[3] === "-" ? -1 : 1;
+        const [h, m] = off.slice(4).split(":").map(Number);
+        return sign * (h * 60 + (m || 0));
+      }
+    } catch {}
+    return 0;
+  };
+
+  // Normalize dates (handle slash format)
+  const ndepDate = depDate.replace(/\//g, "-");
+  const narrDate = arrDate.replace(/\//g, "-");
+
+  const depOff = getOffset(depTz, ndepDate);
+  const arrOff = getOffset(arrTz, narrDate);
+
+  const [dh, dm] = depTime.split(":").map(Number);
+  const [ah, am] = arrTime.split(":").map(Number);
+
+  const depUTC = dh * 60 + dm - depOff;
+  const arrUTC = ah * 60 + am - arrOff;
+
+  // Account for date difference
+  const depEpoch = new Date(ndepDate + "T00:00:00Z").getTime();
+  const arrEpoch = new Date(narrDate + "T00:00:00Z").getTime();
+  const dayDiff = (arrEpoch - depEpoch) / 86400000;
+
+  const result = Math.round(arrUTC - depUTC + dayDiff * 24 * 60);
+  if (Number.isNaN(result)) return "";
+  return result;
 }
 
 export default function AddTrip() {
@@ -235,9 +271,16 @@ export default function AddTrip() {
   const update = (patch: Partial<FormData>) => {
     setForm((prev) => {
       const next = { ...prev, ...patch };
-      // Auto-calculate duration
-      if ("departureTime" in patch || "arrivalTime" in patch) {
-        next.durationMinutes = calcDuration(next.departureTime, next.arrivalTime);
+      // Auto-calculate timezone-aware duration
+      if ("departureTime" in patch || "arrivalTime" in patch ||
+          "departureStation" in patch || "arrivalStation" in patch ||
+          "departureDate" in patch || "arrivalDate" in patch) {
+        const depTz = next.departureStation?.timezone || "Asia/Shanghai";
+        const arrTz = next.arrivalStation?.timezone || "Asia/Shanghai";
+        next.durationMinutes = calcDuration(
+          next.departureDate, next.departureTime, depTz,
+          next.arrivalDate, next.arrivalTime, arrTz
+        );
       }
       return next;
     });

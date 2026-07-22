@@ -2,6 +2,7 @@ import fs from "fs";
 import { seedDb, userDb, saveUserDb } from "./index";
 import { stations, operators, trips } from "./schema";
 import { eq, and } from "drizzle-orm";
+import { computeDuration, computeDistance } from "../geo";
 
 /**
  * Import flights from a byAir CSV export.
@@ -96,6 +97,20 @@ export function importByAirFlights(csvPath: string): { imported: number; skipped
     if (bookingCode) notesParts.push(`票号:${bookingCode}`);
     if (csvNotes) notesParts.push(csvNotes);
 
+    // Compute duration from timezone-aware times
+    const duration = computeDuration(
+      flightDate, depTime, timezone,
+      flightDate, arrTime, arrSt.timezone || timezone
+    );
+
+    // Compute distance from station coordinates
+    const ds = seedDb.select().from(stations).where(eq(stations.id, depSt.id)).get() as any;
+    const as = seedDb.select().from(stations).where(eq(stations.id, arrSt.id)).get() as any;
+    const distance = computeDistance(
+      ds?.latitude, ds?.longitude,
+      as?.latitude, as?.longitude
+    );
+
     try {
       userDb.insert(trips).values({
         type: "flight",
@@ -109,6 +124,8 @@ export function importByAirFlights(csvPath: string): { imported: number; skipped
         arrivalStationId: arrSt.id,
         operator: operatorName,
         trainFlightNumber: flightCode,
+        durationMinutes: duration ?? null,
+        distanceKm: distance ?? null,
         seatNumber: row["Seat Number"]?.trim() || null,
         seatClass: row["Seat Class"]?.trim() || null,
         notes: notesParts.length > 0 ? notesParts.join(" | ") : null,

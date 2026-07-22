@@ -7,6 +7,7 @@ import { chinaAirports } from "./seed-china-air";
 import { intlAirports } from "./seed-intl-air";
 import { intlRailStations } from "./seed-intl-rail";
 import { seedOperators } from "./seed-operators";
+import { computeDuration, computeDistance } from "../geo";
 
 // --- Operators CRUD ---
 
@@ -168,22 +169,28 @@ export function importTripsFromCSV(csvText: string): { imported: number; errors:
     if (arrId === undefined) { errors.push(`Row ${i + 1}: station not found: "${arrName}"`); continue; }
 
     try {
+      const depDate = row["departuredate"] || row["date"] || "";
+      const arrDate = row["arrivaldate"] || row["date"] || "";
+      const depTimezone = "Asia/Shanghai";
+      const arrTimezone = "Asia/Shanghai";
+      const ds = seedDb.select().from(stations).where(eq(stations.id, depId)).get() as any;
+      const as = seedDb.select().from(stations).where(eq(stations.id, arrId)).get() as any;
+      const computedDist = computeDistance(ds?.latitude, ds?.longitude, as?.latitude, as?.longitude);
+      const computedDur = computeDuration(depDate, row["departuretime"], depTimezone, arrDate, row["arrivaltime"], arrTimezone);
       createTrip({
-        type: row["type"] as any, departureDate: row["departuredate"] || row["date"], arrivalDate: row["arrivaldate"] || row["date"],
+        type: row["type"] as any, departureDate: depDate, arrivalDate: arrDate,
         departureTime: row["departuretime"], arrivalTime: row["arrivaltime"],
-        departureTimezone: row["departurestationname"] === row["arrivalstationname"] ? "Asia/Shanghai" : "Asia/Shanghai",
-        arrivalTimezone: row["departurestationname"] === row["arrivalstationname"] ? "Asia/Shanghai" : "Asia/Shanghai",
+        departureTimezone: depTimezone, arrivalTimezone: arrTimezone,
         departureStationId: depId, arrivalStationId: arrId,
         operator: row["operator"], trainFlightNumber: row["trainflightnumber"],
         trainName: row["trainname"] || null, vehicleType: row["vehicletype"] || null,
         vehicleNumber: row["vehiclenumber"] || null, carriageNumber: row["carriagenumber"] || null,
-        durationMinutes: row["durationminutes"] ? parseInt(row["durationminutes"]) : null,
-        distanceKm: row["distancekm"] ? parseFloat(row["distancekm"]) : null,
+        durationMinutes: row["durationminutes"] ? parseInt(row["durationminutes"]) : (computedDur ?? null),
+        distanceKm: row["distancekm"] ? parseFloat(row["distancekm"]) : (computedDist ?? null),
         cost: row["cost"] ? parseFloat(row["cost"]) : null,
         currency: row["currency"] || null, seatNumber: row["seatnumber"] || null,
         seatClass: row["seatclass"] || null, notes: row["notes"] || null,
-      });
-      imported++;
+      });      imported++;
     } catch (e: any) {
       errors.push(`Row ${i + 1}: ${e.message}`);
     }

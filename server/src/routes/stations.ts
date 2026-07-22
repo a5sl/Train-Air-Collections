@@ -1,7 +1,7 @@
 import { Router, Request, Response } from "express";
 import { seedDb, saveSeedDb } from "../db/index";
 import { stations } from "../db/schema";
-import { eq, sql } from "drizzle-orm";
+import { eq, sql, and } from "drizzle-orm";
 
 const router = Router();
 
@@ -13,18 +13,24 @@ router.get("/", (req: Request, res: Response) => {
 
     let query = seedDb.select().from(stations);
 
+    const conditions: ReturnType<typeof sql>[] = [];
+
     if (q) {
-      query = query.where(sql`(
+      conditions.push(sql`(
         ${stations.name} LIKE ${"%" + q + "%"} COLLATE NOCASE
         OR ${stations.city} LIKE ${"%" + q + "%"} COLLATE NOCASE
         OR ${stations.code} LIKE ${"%" + q + "%"} COLLATE NOCASE
       )`);
-    } else if (!type) {
-      query = query.limit(50);
     }
 
     if (type && (type === "train_station" || type === "airport")) {
-      query = query.where(eq(stations.type, type));
+      conditions.push(sql`${stations.type} = ${type}`);
+    }
+
+    if (conditions.length > 0) {
+      query = query.where(and(...conditions));
+    } else {
+      query = query.limit(50);
     }
 
     const result = query.limit(20).all();
@@ -51,7 +57,7 @@ router.post("/", (req: Request, res: Response) => {
     const now = new Date().toISOString();
     const data = req.body;
     const result = seedDb.insert(stations).values({
-      name: data.name, code: data.code ?? null, city: data.city, country: data.country,
+      name: data.name, code: data.code ?? null, city: data.city, country: data.country, timezone: data.timezone ?? null,
       latitude: data.latitude ?? null, longitude: data.longitude ?? null,
       type: data.type, createdAt: now,
     }).returning().get();

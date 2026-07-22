@@ -3,49 +3,14 @@ import { seedDb, userDb, saveUserDb } from "../db/index";
 import { trips, stations } from "../db/schema";
 import { eq, desc, sql, inArray } from "drizzle-orm";
 import { and } from "drizzle-orm";
+import { computeDuration, computeDistance } from "../geo";
 
-// Compute duration in minutes from departure/arrival dates, times, and timezones.
-// Falls back to simple calculation if timezone data is unavailable.
-function computeDuration(
-  depDate: string, depTime: string, depTz: string,
-  arrDate: string, arrTime: string, arrTz: string,
-): number | null {
-  try {
-    const getOffset = (tz: string, dateStr: string): number => {
-      try {
-        const dt = new Date(dateStr + "T12:00:00Z");
-        const parts = new Intl.DateTimeFormat("en-US", {
-          timeZone: tz, timeZoneName: "longOffset", hour12: false,
-        }).formatToParts(dt);
-        const off = parts.find(p => p.type === "timeZoneName")?.value;
-        if (off && off.startsWith("GMT")) {
-          const sign = off[3] === "-" ? -1 : 1;
-          const [h, m] = off.slice(4).split(":").map(Number);
-          return sign * (h * 60 + (m || 0));
-        }
-      } catch {}
-      return 0;
-    };
-
-    const depOff = getOffset(depTz, depDate);
-    const arrOff = getOffset(arrTz, arrDate);
-
-    const [dh, dm] = depTime.split(":").map(Number);
-    const [ah, am] = arrTime.split(":").map(Number);
-
-    // Convert local times to UTC minutes
-    const depUTC = dh * 60 + dm - depOff;
-    const arrUTC = ah * 60 + am - arrOff;
-
-    // Account for date difference (in days)
-    const depEpoch = new Date(depDate + "T00:00:00Z").getTime();
-    const arrEpoch = new Date(arrDate + "T00:00:00Z").getTime();
-    const dayDiff = (arrEpoch - depEpoch) / 86400000;
-
-    return Math.round(arrUTC - depUTC + dayDiff * 24 * 60);
-  } catch {
-    return null;
-  }
+/** Normalize various date formats to YYYY-MM-DD. */
+function normalizeDate(raw: string): string {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+  const m = raw.match(/^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})$/);
+  if (m) return `${m[1]}-${String(parseInt(m[2])).padStart(2, "0")}-${String(parseInt(m[3])).padStart(2, "0")}`;
+  return raw;
 }
 
 const router = Router();
@@ -103,7 +68,7 @@ router.post("/", (req: Request, res: Response) => {
     const now = new Date().toISOString();
     const data = req.body;
     const result = userDb.insert(trips).values({
-      type: data.type, departureDate: data.departureDate, arrivalDate: data.arrivalDate,
+      type: data.type, departureDate: normalizeDate(data.departureDate), arrivalDate: normalizeDate(data.arrivalDate),
       departureTime: data.departureTime, arrivalTime: data.arrivalTime,
       departureTimezone: data.departureTimezone, arrivalTimezone: data.arrivalTimezone,
       departureStationId: data.departureStationId, arrivalStationId: data.arrivalStationId,
@@ -114,7 +79,12 @@ router.post("/", (req: Request, res: Response) => {
         data.departureDate, data.departureTime, data.departureTimezone,
         data.arrivalDate, data.arrivalTime, data.arrivalTimezone
       ) ?? data.durationMinutes ?? null,
-      distanceKm: data.distanceKm ?? null,
+      distanceKm: (() => {
+        if (data.distanceKm != null) return data.distanceKm;
+        const ds = seedDb.select().from(stations).where(eq(stations.id, data.departureStationId)).get() as any;
+        const as = seedDb.select().from(stations).where(eq(stations.id, data.arrivalStationId)).get() as any;
+        return computeDistance(ds?.latitude, ds?.longitude, as?.latitude, as?.longitude) ?? data.distanceKm ?? null;
+      })(),
       cost: data.cost ?? null, currency: data.currency ?? null,
       seatNumber: data.seatNumber ?? null, seatClass: data.seatClass ?? null,
       notes: data.notes ?? null, createdAt: now, updatedAt: now,
@@ -150,6 +120,16 @@ router.put("/:id", (req: Request, res: Response) => {
     const arrTz = updateData.arrivalTimezone ?? existing.arrivalTimezone;
     const computed = computeDuration(depDate, depTime, depTz, arrDate, arrTime, arrTz);
     if (computed !== null) updateData.durationMinutes = computed;
+
+    // Compute distance from station coordinates if not explicitly set
+    if (updateData.distanceKm === undefined) {
+      const depId = updateData.departureStationId ?? existing.departureStationId;
+      const arrId = updateData.arrivalStationId ?? existing.arrivalStationId;
+      const ds = seedDb.select().from(stations).where(eq(stations.id, depId)).get() as any;
+      const as2 = seedDb.select().from(stations).where(eq(stations.id, arrId)).get() as any;
+      const dist = computeDistance(ds?.latitude, ds?.longitude, as2?.latitude, as2?.longitude);
+      if (dist !== null) updateData.distanceKm = dist;
+    }
 
     const result = userDb.update(trips).set(updateData).where(eq(trips.id, id)).returning().get();
     saveUserDb();

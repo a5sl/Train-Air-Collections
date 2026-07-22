@@ -85,7 +85,8 @@ function StationPicker({
     setQuery(v);
     search(v, stationType);
     setOpen(true);
-    if (value) onChange(null);
+    // Only clear if the query doesn not match the current station name
+    if (value && v.trim() !== value.name) onChange(null);
   };
 
   const selectStation = (station: Station) => {
@@ -198,31 +199,67 @@ function StationPicker({
 }
 
 function normalizeDate(raw: string): string {
-  if (!raw) return raw;
-  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
   try {
+    if (!raw) return raw;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
     const d = new Date(raw);
     if (!isNaN(d.getTime())) {
       const y = d.getFullYear();
-      const m = String(d.getMonth() + 1).padStart(2, "0");
-      const day = String(d.getDate()).padStart(2, "0");
-      return y + "-" + m + "-" + day;
+      const mn = String(d.getMonth() + 1).padStart(2, "0");
+      const dy = String(d.getDate()).padStart(2, "0");
+      return y + "-" + mn + "-" + dy;
     }
-  } catch {}
-  const m = raw.match(/(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})/);
-  if (m) {
-    return m[1] + "-" + String(parseInt(m[2])).padStart(2, "0") + "-" + String(parseInt(m[3])).padStart(2, "0");
+    const match = raw.match(/(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})/);
+    if (match) {
+      return match[1] + "-" + String(parseInt(match[2])).padStart(2, "0") + "-" + String(parseInt(match[3])).padStart(2, "0");
+    }
+  } catch {
+    // any parse error, return raw as-is
   }
   return raw;
 }
 
-function calcDuration(dep: string, arr: string): number | "" {
-  if (!dep || !arr) return "";
-  const [dh, dm] = dep.split(":").map(Number);
-  const [ah, am] = arr.split(":").map(Number);
-  let mins = (ah * 60 + am) - (dh * 60 + dm);
-  if (mins < 0) mins += 24 * 60;
-  return mins;
+function calcDuration(
+  depDate: string, depTime: string, depTz: string,
+  arrDate: string, arrTime: string, arrTz: string
+): number | "" {
+  if (!depTime || !arrTime) return "";
+
+  const getOffset = (tz: string, dateStr: string): number => {
+    try {
+      const dt = new Date(dateStr + "T12:00:00Z");
+      const parts = new Intl.DateTimeFormat("en-US", {
+        timeZone: tz, timeZoneName: "longOffset", hour12: false,
+      }).formatToParts(dt);
+      const off = parts.find(p => p.type === "timeZoneName")?.value;
+      if (off && off.startsWith("GMT")) {
+        const sign = off[3] === "-" ? -1 : 1;
+        const [h, m] = off.slice(4).split(":").map(Number);
+        return sign * (h * 60 + (m || 0));
+      }
+    } catch {}
+    return 0;
+  };
+
+  const ndepDate = depDate.replace(/\//g, "-");
+  const narrDate = arrDate.replace(/\//g, "-");
+
+  const depOff = getOffset(depTz, ndepDate);
+  const arrOff = getOffset(arrTz, narrDate);
+
+  const [dh, dm] = depTime.split(":").map(Number);
+  const [ah, am] = arrTime.split(":").map(Number);
+
+  const depUTC = dh * 60 + dm - depOff;
+  const arrUTC = ah * 60 + am - arrOff;
+
+  const depEpoch = new Date(ndepDate + "T00:00:00Z").getTime();
+  const arrEpoch = new Date(narrDate + "T00:00:00Z").getTime();
+  const dayDiff = (arrEpoch - depEpoch) / 86400000;
+
+  const result = Math.round(arrUTC - depUTC + dayDiff * 24 * 60);
+  if (Number.isNaN(result)) return "";
+  return result;
 }
 
 export default function EditTrip() {
@@ -278,9 +315,19 @@ export default function EditTrip() {
     setForm((prev) => {
       if (!prev) return prev;
       const next = { ...prev, ...patch };
-      if ("departureTime" in patch || "arrivalTime" in patch) {
-        next.durationMinutes = calcDuration(next.departureTime, next.arrivalTime);
+
+      // Auto-calculate timezone-aware duration
+      if ("departureTime" in patch || "arrivalTime" in patch ||
+          "departureStation" in patch || "arrivalStation" in patch ||
+          "departureDate" in patch || "arrivalDate" in patch) {
+        const depTz = next.departureStation?.timezone || "Asia/Shanghai";
+        const arrTz = next.arrivalStation?.timezone || "Asia/Shanghai";
+        next.durationMinutes = calcDuration(
+          next.departureDate, next.departureTime, depTz,
+          next.arrivalDate, next.arrivalTime, arrTz
+        );
       }
+
       return next;
     });
   };
