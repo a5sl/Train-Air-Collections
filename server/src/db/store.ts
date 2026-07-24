@@ -1,28 +1,8 @@
-import fs from "fs";
-import path from "path";
-import { fileURLToPath } from "url";
+import { eq, desc } from "drizzle-orm";
+import { seedDb, userDb, saveSeedDb, saveUserDb } from "./index";
+import { stations, trips } from "./schema";
 
-const DATA_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../data");
-
-function ensureDir() {
-  if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
-}
-
-function readJson<T>(file: string, fallback: T): T {
-  ensureDir();
-  const fp = path.join(DATA_DIR, file);
-  if (!fs.existsSync(fp)) return fallback;
-  try {
-    return JSON.parse(fs.readFileSync(fp, "utf-8")) as T;
-  } catch {
-    return fallback;
-  }
-}
-
-export function writeJson<T>(file: string, data: T): void {
-  ensureDir();
-  fs.writeFileSync(path.join(DATA_DIR, file), JSON.stringify(data, null, 2), "utf-8");
-}
+// --- Station types (unchanged from JSON version) ---
 
 export interface Station {
   id: number;
@@ -30,20 +10,23 @@ export interface Station {
   code: string | null;
   city: string;
   country: string;
-  region: string;
   latitude: number | null;
   longitude: number | null;
   type: "train_station" | "airport";
   createdAt: string;
 }
 
+// --- Trip types (unchanged from JSON version) ---
+
 export interface Trip {
   id: number;
   type: "train" | "flight";
-  date: string;
+  departureDate: string;
+  arrivalDate: string;
   departureTime: string;
   arrivalTime: string;
-  timezone: string;
+  departureTimezone: string;
+  arrivalTimezone: string;
   departureStationId: number;
   arrivalStationId: number;
   operator: string;
@@ -63,67 +46,112 @@ export interface Trip {
   updatedAt: string;
 }
 
-let nextId = 1;
+// --- Station CRUD ---
 
 export function getStations(): Station[] {
-  return readJson<Station[]>("stations.json", []);
+  return seedDb.select().from(stations).all() as Station[];
 }
 
 export function getStation(id: number): Station | undefined {
-  return getStations().find((s) => s.id === id);
+  return seedDb.select().from(stations).where(eq(stations.id, id)).get() as Station | undefined;
 }
 
 export function createStation(data: Omit<Station, "id" | "createdAt">): Station {
-  const stations = getStations();
-  const ids = stations.map((s) => s.id);
-  const id = ids.length > 0 ? Math.max(...ids) + 1 : 1;
-  const station: Station = {
-    ...data,
-    id,
-    createdAt: new Date().toISOString(),
-  };
-  stations.push(station);
-  writeJson("stations.json", stations);
-  return station;
+  const now = new Date().toISOString();
+  const result = seedDb.insert(stations).values({
+    name: data.name,
+    code: data.code,
+    city: data.city,
+    country: data.country,
+    latitude: data.latitude,
+    longitude: data.longitude,
+    type: data.type,
+    timezone: null,
+    createdAt: now,
+  }).returning().get() as Station;
+  saveSeedDb();
+  return result;
 }
 
+// --- Trip CRUD ---
+
 export function getTrips(): Trip[] {
-  return readJson<Trip[]>("trips.json", []);
+  const allTrips = seedDb.select().from(trips).orderBy(desc(trips.departureDate), desc(trips.id)).all() as Trip[];
+  return allTrips;
 }
 
 export function getTrip(id: number): Trip | undefined {
-  return getTrips().find((t) => t.id === id);
+  return seedDb.select().from(trips).where(eq(trips.id, id)).get() as Trip | undefined;
 }
 
 export function createTrip(data: Omit<Trip, "id" | "createdAt" | "updatedAt">): Trip {
-  const trips = getTrips();
-  const ids = trips.map((t) => t.id);
-  const id = ids.length > 0 ? Math.max(...ids) + 1 : 1;
-  const trip: Trip = {
-    ...data,
-    id,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  };
-  trips.unshift(trip);
-  writeJson("trips.json", trips);
-  return trip;
+  const now = new Date().toISOString();
+  const result = userDb.insert(trips).values({
+    type: data.type,
+    departureDate: data.departureDate,
+    arrivalDate: data.arrivalDate,
+    departureTime: data.departureTime,
+    arrivalTime: data.arrivalTime,
+    departureTimezone: data.departureTimezone,
+    arrivalTimezone: data.arrivalTimezone,
+    departureStationId: data.departureStationId,
+    arrivalStationId: data.arrivalStationId,
+    operator: data.operator,
+    trainFlightNumber: data.trainFlightNumber,
+    trainName: data.trainName,
+    vehicleType: data.vehicleType,
+    vehicleNumber: data.vehicleNumber,
+    carriageNumber: data.carriageNumber,
+    durationMinutes: data.durationMinutes,
+    distanceKm: data.distanceKm,
+    cost: data.cost,
+    currency: data.currency,
+    seatNumber: data.seatNumber,
+    seatClass: data.seatClass,
+    notes: data.notes,
+    createdAt: now,
+    updatedAt: now,
+  }).returning().get() as Trip;
+  saveUserDb();
+  return result;
 }
 
 export function updateTrip(id: number, data: Partial<Omit<Trip, "id" | "createdAt" | "updatedAt">>): Trip | null {
-  const trips = getTrips();
-  const idx = trips.findIndex((t) => t.id === id);
-  if (idx === -1) return null;
-  trips[idx] = { ...trips[idx], ...data, updatedAt: new Date().toISOString() };
-  writeJson("trips.json", trips);
-  return trips[idx];
+  const now = new Date().toISOString();
+  const updateData: Record<string, any> = { updatedAt: now };
+  if (data.type !== undefined) updateData.type = data.type;
+  if (data.departureDate !== undefined) updateData.departureDate = data.departureDate;
+  if (data.arrivalDate !== undefined) updateData.arrivalDate = data.arrivalDate;
+  if (data.departureTime !== undefined) updateData.departureTime = data.departureTime;
+  if (data.arrivalTime !== undefined) updateData.arrivalTime = data.arrivalTime;
+  if (data.departureTimezone !== undefined) updateData.departureTimezone = data.departureTimezone;
+  if (data.arrivalTimezone !== undefined) updateData.arrivalTimezone = data.arrivalTimezone;
+  if (data.departureStationId !== undefined) updateData.departureStationId = data.departureStationId;
+  if (data.arrivalStationId !== undefined) updateData.arrivalStationId = data.arrivalStationId;
+  if (data.operator !== undefined) updateData.operator = data.operator;
+  if (data.trainFlightNumber !== undefined) updateData.trainFlightNumber = data.trainFlightNumber;
+  if (data.trainName !== undefined) updateData.trainName = data.trainName;
+  if (data.vehicleType !== undefined) updateData.vehicleType = data.vehicleType;
+  if (data.vehicleNumber !== undefined) updateData.vehicleNumber = data.vehicleNumber;
+  if (data.carriageNumber !== undefined) updateData.carriageNumber = data.carriageNumber;
+  if (data.durationMinutes !== undefined) updateData.durationMinutes = data.durationMinutes;
+  if (data.distanceKm !== undefined) updateData.distanceKm = data.distanceKm;
+  if (data.cost !== undefined) updateData.cost = data.cost;
+  if (data.currency !== undefined) updateData.currency = data.currency;
+  if (data.seatNumber !== undefined) updateData.seatNumber = data.seatNumber;
+  if (data.seatClass !== undefined) updateData.seatClass = data.seatClass;
+  if (data.notes !== undefined) updateData.notes = data.notes;
+
+  const result = userDb.update(trips).set(updateData).where(eq(trips.id, id)).returning().get() as Trip | undefined;
+  if (result) saveUserDb();
+  return result ?? null;
 }
 
 export function deleteTrip(id: number): boolean {
-  const trips = getTrips();
-  const idx = trips.findIndex((t) => t.id === id);
-  if (idx === -1) return false;
-  trips.splice(idx, 1);
-  writeJson("trips.json", trips);
-  return true;
+  const result = userDb.delete(trips).where(eq(trips.id, id)).run();
+  if (result.changes > 0) {
+    saveUserDb();
+    return true;
+  }
+  return false;
 }

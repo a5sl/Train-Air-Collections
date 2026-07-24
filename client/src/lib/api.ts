@@ -24,7 +24,7 @@ export const api = {
   importTripsCSV: (csv: string) =>
     request<{ imported: number; errors: string[] }>("/trips/import-csv", {
       method: "POST",
-      headers: { "Content-Type": "text/plain" },
+      headers: { "Content-Type": "text/csv" },
       body: csv,
     }),
 
@@ -41,7 +41,7 @@ export const api = {
 
   getOperators: (q?: string) =>
     request<any[]>(`/operators${q ? `?q=${encodeURIComponent(q)}` : ""}`),
-  createOperator: (data: { name: string; type: string; region: string }) =>
+  createOperator: (data: { name: string; type: string }) =>
     request<any>("/operators", { method: "POST", body: JSON.stringify(data) }),
 
   seedData: () =>

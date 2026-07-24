@@ -2,15 +2,33 @@ import React, { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Train, Plane, Clock, MapPin, BarChart3, Plus,
-  TrendingUp, Star, Navigation, Calendar, DollarSign, Globe,
+  TrendingUp, Star, Navigation, Calendar, DollarSign,
 } from "lucide-react";
 import { api } from "../lib/api";
 import type { Trip } from "../../shared/types";
 
 // ---- Helpers ----
 
+const CURRENCY_SYMBOLS: Record<string, string> = {
+  CNY: "¥",
+  JPY: "¥",
+  USD: "$",
+  EUR: "€",
+  GBP: "£",
+  HKD: "HK$",
+  TWD: "NT$",
+  KRW: "₩",
+  THB: "฿",
+  SGD: "S$",
+  MYR: "RM",
+  VND: "₫",
+  AUD: "A$",
+};
+
+
+
 function formatDuration(minutes: number | null): string {
-  if (!minutes) return "-";
+  if (minutes === null || minutes === 0) return minutes === 0 ? "0m" : "-";
   const h = Math.floor(minutes / 60);
   const m = minutes % 60;
   return h > 0 ? `${h}h ${m}m` : `${m}m`;
@@ -26,7 +44,7 @@ type MonthlyRow = { key: string; label: string; total: number };
 function groupByMonth(trips: Trip[]): MonthlyRow[] {
   const map = new Map<string, number>();
   for (const t of trips) {
-    const key = t.date.slice(0, 7);
+    const key = t.departureDate.slice(0, 7);
     map.set(key, (map.get(key) || 0) + 1);
   }
   return Array.from(map.entries())
@@ -140,7 +158,14 @@ export default function Dashboard() {
     const flightTrips = trips.filter((t) => t.type === "flight");
     const totalDistance = trips.reduce((s, t) => s + (t.distanceKm || 0), 0);
     const totalDuration = trips.reduce((s, t) => s + (t.durationMinutes || 0), 0);
-    const totalCost = trips.reduce((s, t) => s + (t.cost || 0), 0);
+    // Group costs by currency
+    const costByCurrency = new Map<string, number>();
+    trips.forEach((t) => {
+      if (t.cost != null && t.currency != null) {
+        costByCurrency.set(t.currency, (costByCurrency.get(t.currency) || 0) + t.cost);
+      }
+    });
+    const topCurrency = costByCurrency.size > 0 ? [...costByCurrency.entries()].sort((a, b) => b[1] - a[1])[0] : null;
 
     const cities = new Set<string>();
     trips.forEach((t) => {
@@ -149,7 +174,7 @@ export default function Dashboard() {
     });
 
     const thisYear = new Date().getFullYear().toString();
-    const thisYearTrips = trips.filter((t) => t.date.startsWith(thisYear));
+    const thisYearTrips = trips.filter((t) => t.departureDate.startsWith(thisYear));
 
     const monthly = groupByMonth(trips);
 
@@ -185,19 +210,6 @@ export default function Dashboard() {
       withDist.length > 0
         ? Math.round(withDist.reduce((s, t) => s + (t.distanceKm ?? 0), 0) / withDist.length)
         : 0;
-
-    const regionMap = new Map<string, number>();
-    trips.forEach((t) => {
-      if (t.departureStation?.region) {
-        regionMap.set(t.departureStation.region, (regionMap.get(t.departureStation.region) || 0) + 1);
-      }
-      if (t.arrivalStation?.region) {
-        regionMap.set(t.arrivalStation.region, (regionMap.get(t.arrivalStation.region) || 0) + 1);
-      }
-    });
-    const regions = Array.from(regionMap.entries())
-      .sort((a, b) => b[1] - a[1]);
-
     const cityMap = new Map<string, number>();
     trips.forEach((t) => {
       const c = t.arrivalStation?.city || t.arrivalStation?.name;
@@ -212,7 +224,7 @@ export default function Dashboard() {
       flightTrips,
       totalDistance,
       totalDuration,
-      totalCost,
+      costByCurrency, topCurrency,
       cities: cities.size,
       thisYearTrips: thisYearTrips.length,
       monthly,
@@ -220,8 +232,7 @@ export default function Dashboard() {
       topOperators,
       longest,
       avgDistance,
-      topCities,
-      regions,
+      topCities
     };
   }, [trips]);
 
@@ -301,8 +312,29 @@ export default function Dashboard() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <CompactStatCard icon={Navigation} label="万里征途" value={stats.totalDistance.toLocaleString() + " km"} accent="#ca947a" />
         <CompactStatCard icon={Clock} label="光阴流转" value={formatDuration(stats.totalDuration)} accent="#b47157" />
-        <CompactStatCard icon={DollarSign} label="盘缠" value={"¥" + stats.totalCost.toLocaleString()} accent="#a05e44" />
+        <div className="card-parchment p-4 hover:shadow-md transition-shadow flex items-center gap-3"
+            style={{ borderLeftWidth: 3, borderLeftColor: "#a05e44", borderLeftStyle: "solid" }}>
+            <DollarSign className="w-4 h-4" color="#a05e44" />
+            <div className="min-w-0">
+              <p className="text-xs text-ink-400">盘缠</p>
+              {stats.costByCurrency && stats.costByCurrency.size > 0 ? (
+                <div className="flex flex-wrap gap-x-3 gap-y-0">
+                  {[...stats.costByCurrency.entries()].map(([cur, amt]) => {
+                    const sym = cur + " ";
+                    return (
+                      <span key={cur} className="text-base font-bold text-ink-700 tracking-tight whitespace-nowrap">
+                        {sym}{amt.toLocaleString()}
+                      </span>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-base font-bold text-ink-700 tracking-tight truncate">-</p>
+              )}
+            </div>
+          </div>
         <CompactStatCard icon={Calendar} label="今岁" value={stats.thisYearTrips + " 次"} accent="#854b36" />
+
       </div>
 
       {/* ====== Monthly Chart (parchment bg) ====== */}
@@ -370,24 +402,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* ====== Region Distribution ====== */}
-      {stats.regions.length > 0 && (
-        <div className="card-parchment p-5">
-          <h3 className="text-xs font-semibold text-ink-400 uppercase tracking-wider mb-3 flex items-center gap-2">
-            <Globe className="w-4 h-4" style={{ color: "#b47157" }} />游历之域
-          </h3>
-          <p className="text-xs text-ink-400 mb-3">已涉 {stats.regions.length} 域</p>
-          <div className="flex flex-wrap gap-2">
-            {stats.regions.map(([region, count]) => (
-              <span key={region} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm"
-                style={{ backgroundColor: "rgba(180,113,87,0.08)", color: "#854b36" }}>
-                {region}
-                <span style={{ color: "#ca947a" }} className="text-xs ml-0.5">{count}</span>
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* ====== Top Operators ====== */}
       {stats.topOperators.length > 0 && (

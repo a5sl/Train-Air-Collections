@@ -1,32 +1,45 @@
 import { sqliteTable, integer, real, text } from "drizzle-orm/sqlite-core";
 import { sql } from "drizzle-orm";
 
+// ==================== Seed schema (seed.db): stations + operators ====================
+
 export const stations = sqliteTable("stations", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   name: text("name").notNull(),
   code: text("code"),
   city: text("city").notNull(),
   country: text("country").notNull(),
-  region: text("region").notNull(),
   latitude: real("latitude"),
   longitude: real("longitude"),
   type: text("type", { enum: ["train_station", "airport"] }).notNull(),
+  timezone: text("timezone"),
   createdAt: text("created_at").default(sql`(datetime('now'))`).notNull(),
 });
+
+export const operators = sqliteTable("operators", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  name: text("name").notNull(),
+  code: text("code"),
+  type: text("type", { enum: ["railway", "airline", "other"] }).notNull(),
+  createdAt: text("created_at").default(sql`(datetime('now'))`).notNull(),
+});
+
+export const seedSchema = { stations, operators };
+
+// ==================== User schema (user.db): trips only ====================
+// NOTE: cross-db FK not supported; station IDs are plain integers.
 
 export const trips = sqliteTable("trips", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   type: text("type", { enum: ["train", "flight"] }).notNull(),
-  date: text("date").notNull(),
+  departureDate: text("departure_date").notNull(),
+  arrivalDate: text("arrival_date").notNull(),
   departureTime: text("departure_time").notNull(),
   arrivalTime: text("arrival_time").notNull(),
-  timezone: text("timezone").notNull(),
-  departureStationId: integer("departure_station_id")
-    .notNull()
-    .references(() => stations.id),
-  arrivalStationId: integer("arrival_station_id")
-    .notNull()
-    .references(() => stations.id),
+  departureTimezone: text("departure_timezone").notNull(),
+  arrivalTimezone: text("arrival_timezone").notNull(),
+  departureStationId: integer("departure_station_id").notNull(),
+  arrivalStationId: integer("arrival_station_id").notNull(),
   operator: text("operator").notNull(),
   trainFlightNumber: text("train_flight_number").notNull(),
   trainName: text("train_name"),
@@ -43,3 +56,5 @@ export const trips = sqliteTable("trips", {
   createdAt: text("created_at").default(sql`(datetime('now'))`).notNull(),
   updatedAt: text("updated_at").default(sql`(datetime('now'))`).notNull(),
 });
+
+export const userSchema = { trips };

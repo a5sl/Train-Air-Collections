@@ -9,20 +9,22 @@ export interface Station {
   code: string | null;          // IATA code / station code
   city: string;
   country: string;
-  region: string;               // e.g., "中国", "日本", "法国"
   latitude: number | null;
   longitude: number | null;
   type: StationType;
+  timezone?: string | null;
   createdAt: string;
 }
 
 export interface Trip {
   id: number;
   type: TransportType;
-  date: string;                 // "2026-07-18"
+  departureDate: string;        // "2026-07-18"
+  arrivalDate: string;          // "2026-07-18"
   departureTime: string;        // "14:30"
   arrivalTime: string;          // "16:45"
-  timezone: string;             // "Asia/Shanghai"
+  departureTimezone: string;    // "Asia/Shanghai"
+  arrivalTimezone: string;      // "Asia/Tokyo"
   departureStationId: number;
   arrivalStationId: number;
   operator: string;             // e.g., "中国国铁", "全日空"
@@ -47,10 +49,12 @@ export interface Trip {
 
 export interface TripCreateInput {
   type: TransportType;
-  date: string;
+  departureDate: string;
+  arrivalDate: string;
   departureTime: string;
   arrivalTime: string;
-  timezone: string;
+  departureTimezone: string;
+  arrivalTimezone: string;
   departureStationId: number;
   arrivalStationId: number;
   operator: string;
@@ -73,7 +77,6 @@ export interface StationCreateInput {
   code?: string;
   city: string;
   country: string;
-  region: string;
   latitude?: number;
   longitude?: number;
   type: StationType;

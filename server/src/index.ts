@@ -1,8 +1,10 @@
 import express from "express";
 import cors from "cors";
+import { initDb } from "./db/index";
 import tripsRouter from "./routes/trips";
 import stationsRouter from "./routes/stations";
 import { seedStations, seedOperatorsData, getOperators, addOperator, importTripsFromCSV } from "./db/seed";
+import { importByAirFlights } from "./db/import-byair";
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -33,7 +35,7 @@ app.post("/api/operators", (req, res) => {
   }
 });
 
-// ---- Seed ----
+// ---- Seed (manual trigger) ----
 app.post("/api/seed", (_req, res) => {
   try {
     const nStations = seedStations();
@@ -59,19 +61,31 @@ app.post("/api/trips/import-csv", (req, res) => {
   }
 });
 
+// ---- byAir CSV Import ----
+app.post("/api/trips/import-byair", (req, res) => {
+  try {
+    const csvPath = req.body?.csvPath;
+    if (!csvPath) {
+      res.status(400).json({ success: false, error: "csvPath is required" });
+      return;
+    }
+    const result = importByAirFlights(csvPath);
+    res.json({ success: true, data: result });
+  } catch (e: any) {
+    res.status(400).json({ success: false, error: e.message });
+  }
+});
+
 app.get("/api/health", (_req, res) => {
   res.json({ status: "ok" });
 });
 
-// Auto-seed on startup
-try {
-  const n1 = seedStations();
-  const n2 = seedOperatorsData();
-  console.log(`Seed complete: ${n1} stations, ${n2} operators`);
-} catch (e) {
-  console.error("Seed failed:", e);
+// Start server
+async function start() {
+  await initDb();
+  app.listen(PORT, () => {
+    console.log(`Server running on http://localhost:${PORT}`);
+  });
 }
 
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
-});
+start();

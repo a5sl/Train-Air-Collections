@@ -19,10 +19,10 @@ const CURRENCIES = ["CNY", "USD", "EUR", "JPY", "GBP", "HKD", "KRW", "AUD", "CAD
 
 interface FormData {
   type: "train" | "flight";
-  date: string;
+  departureDate: string;
+  arrivalDate: string;
   departureTime: string;
   arrivalTime: string;
-  timezone: string;
   departureStation: Station | null;
   arrivalStation: Station | null;
   operator: string;
@@ -64,7 +64,6 @@ function StationPicker({
     code: "",
     city: "",
     country: "",
-    region: "",
     latitude: "",
     longitude: "",
   });
@@ -86,7 +85,8 @@ function StationPicker({
     setQuery(v);
     search(v, stationType);
     setOpen(true);
-    if (value) onChange(null);
+    // Only clear if the query doesn not match the current station name
+    if (value && v.trim() !== value.name) onChange(null);
   };
 
   const selectStation = (station: Station) => {
@@ -96,21 +96,20 @@ function StationPicker({
   };
 
   const createStation = async () => {
-    if (!newStation.name || !newStation.city || !newStation.country || !newStation.region) return;
+    if (!newStation.name || !newStation.city || !newStation.country) return;
     try {
       const created = await api.createStation({
         name: newStation.name,
         code: newStation.code || undefined,
         city: newStation.city,
         country: newStation.country,
-        region: newStation.region,
         latitude: newStation.latitude ? parseFloat(newStation.latitude) : undefined,
         longitude: newStation.longitude ? parseFloat(newStation.longitude) : undefined,
         type: stationType,
       });
       selectStation(created);
       setIsCreating(false);
-      setNewStation({ name: "", code: "", city: "", country: "", region: "", latitude: "", longitude: "" });
+      setNewStation({ name: "", code: "", city: "", country: "", latitude: "", longitude: "" });
     } catch {
       alert("创建站点失败");
     }
@@ -123,7 +122,7 @@ function StationPicker({
         <div className="flex items-center gap-2 p-2.5 bg-gray-50 rounded-lg border border-gray-200">
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-gray-900 truncate">{value.name}</p>
-            <p className="text-xs text-gray-500">{value.city}, {value.region}</p>
+            <p className="text-xs text-gray-500">{value.city}</p>
           </div>
           <button onClick={() => { onChange(null); setQuery(""); }} className="text-gray-400 hover:text-gray-600">
             <X className="w-4 h-4" />
@@ -166,8 +165,6 @@ function StationPicker({
                         <input className="input-field" placeholder="国家 *" value={newStation.country}
                           onChange={e => setNewStation(p => ({...p, country: e.target.value}))} />
                       </div>
-                      <input className="input-field" placeholder="地区 * (如中国、日本、法国)" value={newStation.region}
-                        onChange={e => setNewStation(p => ({...p, region: e.target.value}))} />
                       <div className="grid grid-cols-2 gap-2">
                         <input className="input-field" placeholder="纬度" value={newStation.latitude}
                           onChange={e => setNewStation(p => ({...p, latitude: e.target.value}))} />
@@ -190,7 +187,7 @@ function StationPicker({
                 <div key={s.id} onClick={() => selectStation(s)} className="station-option">
                   <span className="font-medium text-gray-900">{s.name}</span>
                   {s.code && <span className="text-gray-400 ml-1.5">({s.code})</span>}
-                  <span className="text-gray-400 ml-2 text-xs">{s.city}, {s.region}</span>
+                  <span className="text-gray-400 ml-2 text-xs">{s.city}</span>
                 </div>
               ))}
             </div>
@@ -201,13 +198,68 @@ function StationPicker({
   );
 }
 
-function calcDuration(dep: string, arr: string): number | "" {
-  if (!dep || !arr) return "";
-  const [dh, dm] = dep.split(":").map(Number);
-  const [ah, am] = arr.split(":").map(Number);
-  let mins = (ah * 60 + am) - (dh * 60 + dm);
-  if (mins < 0) mins += 24 * 60;
-  return mins;
+function normalizeDate(raw: string): string {
+  try {
+    if (!raw) return raw;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+    const d = new Date(raw);
+    if (!isNaN(d.getTime())) {
+      const y = d.getFullYear();
+      const mn = String(d.getMonth() + 1).padStart(2, "0");
+      const dy = String(d.getDate()).padStart(2, "0");
+      return y + "-" + mn + "-" + dy;
+    }
+    const match = raw.match(/(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})/);
+    if (match) {
+      return match[1] + "-" + String(parseInt(match[2])).padStart(2, "0") + "-" + String(parseInt(match[3])).padStart(2, "0");
+    }
+  } catch {
+    // any parse error, return raw as-is
+  }
+  return raw;
+}
+
+function calcDuration(
+  depDate: string, depTime: string, depTz: string,
+  arrDate: string, arrTime: string, arrTz: string
+): number | "" {
+  if (!depTime || !arrTime) return "";
+
+  const getOffset = (tz: string, dateStr: string): number => {
+    try {
+      const dt = new Date(dateStr + "T12:00:00Z");
+      const parts = new Intl.DateTimeFormat("en-US", {
+        timeZone: tz, timeZoneName: "longOffset", hour12: false,
+      }).formatToParts(dt);
+      const off = parts.find(p => p.type === "timeZoneName")?.value;
+      if (off && off.startsWith("GMT")) {
+        const sign = off[3] === "-" ? -1 : 1;
+        const [h, m] = off.slice(4).split(":").map(Number);
+        return sign * (h * 60 + (m || 0));
+      }
+    } catch {}
+    return 0;
+  };
+
+  const ndepDate = depDate.replace(/\//g, "-");
+  const narrDate = arrDate.replace(/\//g, "-");
+
+  const depOff = getOffset(depTz, ndepDate);
+  const arrOff = getOffset(arrTz, narrDate);
+
+  const [dh, dm] = depTime.split(":").map(Number);
+  const [ah, am] = arrTime.split(":").map(Number);
+
+  const depUTC = dh * 60 + dm - depOff;
+  const arrUTC = ah * 60 + am - arrOff;
+
+  const depEpoch = new Date(ndepDate + "T00:00:00Z").getTime();
+  const arrEpoch = new Date(narrDate + "T00:00:00Z").getTime();
+  const dayDiff = (arrEpoch - depEpoch) / 86400000;
+
+  const result = Math.round(arrUTC - depUTC + dayDiff * 24 * 60);
+  if (Number.isNaN(result)) return "";
+  return result;
 }
 
 export default function EditTrip() {
@@ -224,10 +276,11 @@ export default function EditTrip() {
       .then((trip) => {
         setForm({
           type: trip.type,
-          date: trip.date,
+          departureDate: normalizeDate(trip.departureDate),
+      arrivalDate: normalizeDate(trip.arrivalDate),
           departureTime: trip.departureTime,
           arrivalTime: trip.arrivalTime,
-          timezone: trip.timezone,
+          
           departureStation: trip.departureStation || null,
           arrivalStation: trip.arrivalStation || null,
           operator: trip.operator,
@@ -262,9 +315,19 @@ export default function EditTrip() {
     setForm((prev) => {
       if (!prev) return prev;
       const next = { ...prev, ...patch };
-      if ("departureTime" in patch || "arrivalTime" in patch) {
-        next.durationMinutes = calcDuration(next.departureTime, next.arrivalTime);
+
+      // Auto-calculate timezone-aware duration
+      if ("departureTime" in patch || "arrivalTime" in patch ||
+          "departureStation" in patch || "arrivalStation" in patch ||
+          "departureDate" in patch || "arrivalDate" in patch) {
+        const depTz = next.departureStation?.timezone || "Asia/Shanghai";
+        const arrTz = next.arrivalStation?.timezone || "Asia/Shanghai";
+        next.durationMinutes = calcDuration(
+          next.departureDate, next.departureTime, depTz,
+          next.arrivalDate, next.arrivalTime, arrTz
+        );
       }
+
       return next;
     });
   };
@@ -276,7 +339,7 @@ export default function EditTrip() {
       alert("请选择起止站点");
       return;
     }
-    if (!form.date || !form.departureTime || !form.arrivalTime || !form.operator || !form.trainFlightNumber) {
+    if (!form.departureDate || !form.departureTime || !form.arrivalTime || !form.operator || !form.trainFlightNumber) {
       alert("请填写所有必填项");
       return;
     }
@@ -284,10 +347,12 @@ export default function EditTrip() {
     try {
       await api.updateTrip(parseInt(id), {
         type: form.type,
-        date: form.date,
+        departureDate: form.departureDate,
+        arrivalDate: form.arrivalDate,
         departureTime: form.departureTime,
         arrivalTime: form.arrivalTime,
-        timezone: form.timezone,
+        departureTimezone: form.departureStation?.timezone || "Asia/Shanghai",
+        arrivalTimezone: form.arrivalStation?.timezone || "Asia/Shanghai",
         departureStationId: form.departureStation.id,
         arrivalStationId: form.arrivalStation.id,
         operator: form.operator,
@@ -365,11 +430,12 @@ export default function EditTrip() {
         <div className="card p-5 space-y-4">
           <h3 className="text-xs font-semibold text-ink-400 uppercase tracking-wider">必填</h3>
 
+          {/* Departure row */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
-              <label className="label-text">日期 *</label>
-              <input type="date" className="input-field" value={form.date}
-                onChange={e => update({ date: e.target.value })} required />
+              <label className="label-text">出发日期 *</label>
+              <input type="date" className="input-field" value={form.departureDate}
+                onChange={e => update({ departureDate: e.target.value })} required />
             </div>
             <div>
               <label className="label-text">出发时间 *</label>
@@ -377,9 +443,30 @@ export default function EditTrip() {
                 onChange={e => update({ departureTime: e.target.value })} required />
             </div>
             <div>
+              <label className="label-text">出发时区</label>
+              <div className="input-field bg-ink-50 text-ink-500 flex items-center">
+                {form.departureStation?.timezone || "— 选择站点后自动填入"}
+              </div>
+            </div>
+          </div>
+          {/* Arrival row */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label className="label-text">到达日期</label>
+              <input type="date" className="input-field" value={form.arrivalDate}
+                onChange={e => update({ arrivalDate: e.target.value })} />
+              <p className="text-xs text-ink-400 mt-1">默认与出发日期相同，过夜旅途可修改</p>
+            </div>
+            <div>
               <label className="label-text">到达时间 *</label>
               <input type="time" className="input-field" value={form.arrivalTime}
                 onChange={e => update({ arrivalTime: e.target.value })} required />
+            </div>
+            <div>
+              <label className="label-text">到达时区</label>
+              <div className="input-field bg-ink-50 text-ink-500 flex items-center">
+                {form.arrivalStation?.timezone || "— 选择站点后自动填入"}
+              </div>
             </div>
           </div>
 
@@ -389,18 +476,7 @@ export default function EditTrip() {
             </p>
           )}
 
-          <div>
-            <label className="label-text">时区 *</label>
-            <div className="relative">
-              <select className="select-field appearance-none pr-8" value={form.timezone}
-                onChange={e => update({ timezone: e.target.value })} required>
-                {TIMEZONES.map(tz => (
-                  <option key={tz} value={tz}>{tz}</option>
-                ))}
-              </select>
-              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-            </div>
-          </div>
+
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <StationPicker
@@ -480,6 +556,7 @@ export default function EditTrip() {
                 onChange={e => update({ carriageNumber: e.target.value })} />
             </div>
             )}
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="label-text">总用时 (分钟)</label>

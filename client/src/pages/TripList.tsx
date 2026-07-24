@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
-import { Train, Plane, Clock, MapPin, Trash2, ChevronRight, Search, Upload, Database, Pencil } from "lucide-react";
+import { Train, Plane, Clock, MapPin, Trash2, ChevronRight, Search, Upload, Database, Pencil, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../lib/api";
 import type { Trip } from "../../shared/types";
@@ -9,10 +9,26 @@ export default function TripList() {
   const [loading, setLoading] = useState(true);
   const [importing, setImporting] = useState(false);
   const [seedMsg, setSeedMsg] = useState("");
-  const [filter, setFilter] = useState<"all" | "train" | "flight">("all");
+  const [filter, setFilter] = useState<"all" | "train" | "flight">(() => {
+    const saved = localStorage.getItem("tripListFilter");
+    return (saved === "train" || saved === "flight") ? saved : "all";
+  });
   const [searchQuery, setSearchQuery] = useState("");
+  const [sortOrder, setSortOrder] = useState<"desc" | "asc">(() => {
+    const saved = localStorage.getItem("tripListSort");
+    return (saved === "asc" || saved === "desc") ? saved : "desc";
+  });
+  const updateSort = (val: "desc" | "asc") => {
+    setSortOrder(val);
+    localStorage.setItem("tripListSort", val);
+  };
   const fileRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
+
+  const updateFilter = (val: "all" | "train" | "flight") => {
+    setFilter(val);
+    localStorage.setItem("tripListFilter", val);
+  };
 
   const loadTrips = () => {
     setLoading(true);
@@ -65,7 +81,20 @@ export default function TripList() {
         t.departureStation?.city.toLowerCase().includes(q) ||
         t.arrivalStation?.city.toLowerCase().includes(q)
       );
+    })
+    .sort((a, b) => {
+      const da = parseDate(a.departureDate);
+      const db = parseDate(b.departureDate);
+      return sortOrder === "desc" ? db - da : da - db;
     });
+
+  function parseDate(s: string): number {
+    if (!s) return 0;
+    const m = s.match(/(\d{4})-(\d{2})-(\d{2})/);
+    if (m) return new Date(m[1] + "-" + m[2] + "-" + m[3] + "T00:00:00Z").getTime();
+    const ts = Date.parse(s);
+    return isNaN(ts) ? 0 : ts;
+  }
 
   const formatDuration = (mins: number | null) => {
     if (!mins) return null;
@@ -103,13 +132,22 @@ export default function TripList() {
         </div>
         <div className="flex gap-1 bg-gray-100 rounded-lg p-1">
           {(["all", "train", "flight"] as const).map(f => (
-            <button key={f} onClick={() => setFilter(f)}
+            <button key={f} onClick={() => updateFilter(f)}
               className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
                 filter === f ? "bg-terracotta-100 text-terracotta-700 shadow-sm" : "text-ink-400 hover:text-ink-700"
               }`}>
               {f === "all" ? "全部" : f === "train" ? "铁轨" : "云路"}
             </button>
           ))}
+        </div>
+        <div className="flex gap-1 bg-gray-100 rounded-lg p-1">
+          <button onClick={() => updateSort(sortOrder === "desc" ? "asc" : "desc")}
+            className="px-3 py-1.5 rounded-md text-sm font-medium transition-all text-ink-400 hover:text-ink-700 flex items-center gap-1"
+            title={sortOrder === "desc" ? "当前: 最新在前" : "当前: 最早在前"}>
+            <ArrowUpDown className="w-3.5 h-3.5" />
+            时间
+            {sortOrder === "desc" ? <ArrowDown className="w-3 h-3" /> : <ArrowUp className="w-3 h-3" />}
+          </button>
         </div>
       </div>
 
@@ -152,18 +190,11 @@ export default function TripList() {
                   <div className="mt-2 flex items-center gap-3 text-xs text-gray-400 flex-wrap">
                     <span className="flex items-center gap-1">
                       <Clock className="w-3 h-3" />
-                      {trip.date} {trip.departureTime} - {trip.arrivalTime}
+                      {trip.departureDate} {trip.departureTime} - {trip.arrivalTime}
                     </span>
                     {trip.durationMinutes && <span>{formatDuration(trip.durationMinutes)}</span>}
                     {trip.distanceKm && (
                       <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{trip.distanceKm} km</span>
-                    )}
-                    {trip.departureStation?.region && (
-                      <span className="px-1.5 py-0.5 bg-gray-100 rounded">
-                        {trip.departureStation.region}
-                        {trip.arrivalStation?.region && trip.arrivalStation.region !== trip.departureStation.region
-                          ? ` → ${trip.arrivalStation.region}` : ""}
-                      </span>
                     )}
                   </div>
                   {(trip.trainName || trip.vehicleType || trip.seatClass) && (
@@ -171,6 +202,7 @@ export default function TripList() {
                       {trip.trainName && <span>{trip.trainName}</span>}
                       {trip.vehicleType && <span>{trip.vehicleType}</span>}
                       {trip.vehicleNumber && <span>#{trip.vehicleNumber}</span>}
+                      {trip.carriageNumber && <span>{trip.carriageNumber}车厢</span>}
                       {trip.seatClass && <span>{trip.seatClass}</span>}
                       {trip.seatNumber && <span>{trip.seatNumber}座</span>}
                     </div>

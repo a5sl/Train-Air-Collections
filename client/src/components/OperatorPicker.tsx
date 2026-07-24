@@ -15,7 +15,7 @@ export default function OperatorPicker({ label, value, onChange, placeholder }: 
   const [results, setResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
-  const [newOp, setNewOp] = useState({ name: "", type: "railway", region: "" });
+  const [newOp, setNewOp] = useState({ name: "", type: "railway" });
   const ref = useRef<HTMLDivElement>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout>>();
 
@@ -58,12 +58,13 @@ export default function OperatorPicker({ label, value, onChange, placeholder }: 
   };
 
   const handleAdd = async () => {
-    if (!newOp.name || !newOp.region) return;
+   if (!newOp.name) return;
     try {
       await (api as any).createOperator(newOp);
       selectOp(newOp.name);
       setShowAdd(false);
-      setNewOp({ name: "", type: "railway", region: "" });
+     setNewOp({ name: "", type: "railway",  });
+      setNewOp({ name: "", type: "railway" });
     } catch { alert("添败"); }
   };
 
@@ -103,8 +104,6 @@ export default function OperatorPicker({ label, value, onChange, placeholder }: 
                       <option value="airline">航空</option>
                       <option value="other">其他</option>
                     </select>
-                    <input className="input-field flex-1" placeholder="地区 *" value={newOp.region}
-                      onChange={e => setNewOp(p => ({...p, region: e.target.value}))} />
                   </div>
                   <div className="flex gap-2">
                     <button onClick={handleAdd} className="btn-primary text-xs py-1.5 flex-1">创</button>
@@ -117,7 +116,8 @@ export default function OperatorPicker({ label, value, onChange, placeholder }: 
           {results.map((o: any) => (
             <div key={o.id} onClick={() => selectOp(o.name)} className="station-option">
               <span className="font-medium text-ink-800">{o.name}</span>
-              <span className="text-ink-400 ml-2 text-xs">{o.region} · {o.type === "railway" ? "铁路" : o.type === "airline" ? "航空" : "其他"}</span>
+             <span className="text-ink-400 ml-2 text-xs">{o.type === "railway" ? "铁路" : o.type === "airline" ? "航空" : "其他"}</span>
+              <span className="text-ink-400 ml-2 text-xs">{o.type === "railway" ? "铁路" : o.type === "airline" ? "航空" : "其他"}</span>
             </div>
           ))}
         </div>
