@@ -3,6 +3,7 @@ import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from "react-
 import L from "leaflet";
 import { Train, Plane, Layers, ChevronDown, Filter, X } from "lucide-react";
 import { api } from "../lib/api";
+import { wgs84ToGcj02 } from "../lib/coords";
 import type { Trip } from "../../shared/types";
 
 // Fix default marker icons in bundler
@@ -167,7 +168,7 @@ function ZoomMarkers({
       {Array.from(stations.entries()).map(([id, s]) => (
         <Marker
           key={`station-${id}`}
-          position={[s.lat, s.lng]}
+          position={wgs84ToGcj02(s.lat, s.lng)}
           icon={
             detail
               ? s.type === "train" ? trainPill : planePill
@@ -229,10 +230,10 @@ function FitBoundsOnFilter({ trips, city }: { trips: Trip[]; city: string | null
     if (city && city !== prevCity.current && trips.length > 0) {
       const coords: [number, number][] = [];
       trips.forEach((t) => {
-        if (t.departureStation?.latitude && t.departureStation?.longitude)
-          coords.push([t.departureStation.latitude, t.departureStation.longitude]);
-        if (t.arrivalStation?.latitude && t.arrivalStation?.longitude)
-          coords.push([t.arrivalStation.latitude, t.arrivalStation.longitude]);
+        if (t.departureStation?.latitude != null && t.departureStation?.longitude != null)
+          coords.push(wgs84ToGcj02(t.departureStation.latitude, t.departureStation.longitude));
+        if (t.arrivalStation?.latitude != null && t.arrivalStation?.longitude != null)
+          coords.push(wgs84ToGcj02(t.arrivalStation.latitude, t.arrivalStation.longitude));
       });
       if (coords.length > 0) map.fitBounds(L.latLngBounds(coords).pad(0.1));
     }
@@ -247,10 +248,10 @@ function MapBounds({ trips }: { trips: Trip[] }) {
   useEffect(() => {
     const coords: [number, number][] = [];
     trips.forEach((t) => {
-      if (t.departureStation?.latitude && t.departureStation?.longitude)
-        coords.push([t.departureStation.latitude, t.departureStation.longitude]);
-      if (t.arrivalStation?.latitude && t.arrivalStation?.longitude)
-        coords.push([t.arrivalStation.latitude, t.arrivalStation.longitude]);
+      if (t.departureStation?.latitude != null && t.departureStation?.longitude != null)
+        coords.push(wgs84ToGcj02(t.departureStation.latitude, t.departureStation.longitude));
+      if (t.arrivalStation?.latitude != null && t.arrivalStation?.longitude != null)
+        coords.push(wgs84ToGcj02(t.arrivalStation.latitude, t.arrivalStation.longitude));
     });
     if (coords.length > 0) map.fitBounds(L.latLngBounds(coords).pad(0.15));
   }, [trips, map]);
@@ -304,7 +305,9 @@ export default function MapView() {
     .map((t) => {
       const start: [number, number] = [t.departureStation!.latitude!, t.departureStation!.longitude!];
       const end:   [number, number] = [t.arrivalStation!.latitude!,   t.arrivalStation!.longitude!];
-      return { trip: t, positions: bezierArc(start, end) };
+      const gcjStart = wgs84ToGcj02(start[0], start[1]);
+      const gcjEnd   = wgs84ToGcj02(end[0], end[1]);
+      return { trip: t, positions: bezierArc(gcjStart, gcjEnd) };
     });
 
   // Unique stations from displayed trips
@@ -418,8 +421,9 @@ export default function MapView() {
             scrollWheelZoom={true}
           >
             <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              attribution='&copy; <a href="https://www.amap.com/">高德地图</a>'
+              url="https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}"
+              subdomains={["1","2","3","4"]}
               noWrap={true}
             />
             <MapBounds trips={displayTrips} />

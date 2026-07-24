@@ -30,6 +30,7 @@ interface FormData {
   trainName: string;
   vehicleType: string;
   vehicleNumber: string;
+  carriageNumber: string;
   durationMinutes: number | "";
   distanceKm: number | "";
   cost: number | "";
@@ -234,6 +235,7 @@ export default function EditTrip() {
           trainName: trip.trainName || "",
           vehicleType: trip.vehicleType || "",
           vehicleNumber: trip.vehicleNumber || "",
+          carriageNumber: trip.carriageNumber || "",
           durationMinutes: trip.durationMinutes ?? "",
           distanceKm: trip.distanceKm ?? "",
           cost: trip.cost ?? "",
@@ -243,7 +245,7 @@ export default function EditTrip() {
           notes: trip.notes || "",
         });
         // Show optional section if there are optional fields already filled
-        if (trip.trainName || trip.vehicleType || trip.vehicleNumber ||
+        if (trip.trainName || trip.vehicleType || trip.vehicleNumber || trip.carriageNumber ||
             trip.distanceKm || trip.cost || trip.seatNumber ||
             trip.seatClass || trip.notes) {
           setShowOptional(true);
@@ -293,6 +295,7 @@ export default function EditTrip() {
         trainName: form.trainName || undefined,
         vehicleType: form.vehicleType || undefined,
         vehicleNumber: form.vehicleNumber || undefined,
+        carriageNumber: form.carriageNumber || undefined,
         durationMinutes: form.durationMinutes || undefined,
         distanceKm: form.distanceKm || undefined,
         cost: form.cost || undefined,
@@ -470,6 +473,13 @@ export default function EditTrip() {
               <input className="input-field" placeholder={form.type === "train" ? "如: CRH2A-2158" : "如: JA123A"}
                 value={form.vehicleNumber} onChange={e => update({ vehicleNumber: e.target.value })} />
             </div>
+            {form.type === "train" && (
+            <div>
+              <label className="label-text">车厢号</label>
+              <input className="input-field" placeholder="如: 2, 13" value={form.carriageNumber}
+                onChange={e => update({ carriageNumber: e.target.value })} />
+            </div>
+            )}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="label-text">总用时 (分钟)</label>

@@ -30,6 +30,7 @@ export interface Trip {
   trainName: string | null;     // e.g., "和谐号"
   vehicleType: string | null;   // e.g., "CRH2A", "B787-9"
   vehicleNumber: string | null; // e.g., "CRH2A-2158"
+  carriageNumber: string | null; // e.g., "2" (车厢号)
   durationMinutes: number | null;
   distanceKm: number | null;
   cost: number | null;
@@ -57,6 +58,7 @@ export interface TripCreateInput {
   trainName?: string;
   vehicleType?: string;
   vehicleNumber?: string;
+  carriageNumber?: string;
   durationMinutes?: number;
   distanceKm?: number;
   cost?: number;
