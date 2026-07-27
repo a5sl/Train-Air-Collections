@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Train, Plane, Search, Plus, X, ChevronDown } from "lucide-react";
 import { api } from "../lib/api";
 import { useStationSearch } from "../hooks/useStationSearch";
+import { DateField } from "../lib/dateInput";
 import OperatorPicker from "../components/OperatorPicker";
 import type { Station } from "../../shared/types";
 
@@ -370,8 +371,8 @@ export default function AddTrip() {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
               <label className="label-text">出发日期 *</label>
-              <input type="date" className="input-field" value={form.departureDate}
-                onChange={e => update({ departureDate: e.target.value, arrivalDate: e.target.value })} required />
+              <DateField value={form.departureDate}
+                onChange={v => update({ departureDate: v, arrivalDate: v })} required />
             </div>
             <div>
               <label className="label-text">出发时间 *</label>
@@ -389,8 +390,8 @@ export default function AddTrip() {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
               <label className="label-text">到达日期</label>
-              <input type="date" className="input-field" value={form.arrivalDate}
-                onChange={e => update({ arrivalDate: e.target.value })} />
+              <DateField value={form.arrivalDate}
+                onChange={v => update({ arrivalDate: v })} />
               <p className="text-xs text-ink-400 mt-1">默认与出发日期相同，过夜旅途可修改</p>
             </div>
             <div>

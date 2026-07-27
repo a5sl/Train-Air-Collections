@@ -1,51 +1,69 @@
 import { Router, Request, Response } from "express";
 import { seedDb, saveSeedDb } from "../db/index";
-import { stations } from "../db/schema";
+import { stations, airports } from "../db/schema";
 import { eq, sql, and } from "drizzle-orm";
 
 const router = Router();
 
-// GET /api/stations
+// GET /api/stations — queries stations (trains) and airports, unioned
 router.get("/", (req: Request, res: Response) => {
   try {
     const q = (req.query.q as string || "").toLowerCase();
     const type = req.query.type as string | undefined;
 
-    let query = seedDb.select().from(stations);
-
-    const conditions: ReturnType<typeof sql>[] = [];
-
+    // Build conditions for stations (trains)
+    const stConditions: ReturnType<typeof sql>[] = [];
     if (q) {
-      conditions.push(sql`(
+      stConditions.push(sql`(
         ${stations.name} LIKE ${"%" + q + "%"} COLLATE NOCASE
         OR ${stations.city} LIKE ${"%" + q + "%"} COLLATE NOCASE
         OR ${stations.code} LIKE ${"%" + q + "%"} COLLATE NOCASE
       )`);
     }
 
-    if (type && (type === "train_station" || type === "airport")) {
-      conditions.push(sql`${stations.type} = ${type}`);
+    // Build conditions for airports
+    const apConditions: ReturnType<typeof sql>[] = [];
+    if (q) {
+      apConditions.push(sql`(
+        ${airports.name} LIKE ${"%" + q + "%"} COLLATE NOCASE
+        OR ${airports.city} LIKE ${"%" + q + "%"} COLLATE NOCASE
+        OR ${airports.code} LIKE ${"%" + q + "%"} COLLATE NOCASE
+      )`);
     }
 
-    if (conditions.length > 0) {
-      query = query.where(and(...conditions));
-    } else {
-      query = query.limit(50);
+    let stQuery = seedDb.select().from(stations);
+    let apQuery = seedDb.select().from(airports);
+
+    if (stConditions.length > 0) stQuery = stQuery.where(and(...stConditions));
+    if (apConditions.length > 0) apQuery = apQuery.where(and(...apConditions));
+
+    // If type filter: only query the relevant table
+    if (type === "train_station") {
+      const result = stQuery.limit(20).all();
+      return res.json({ success: true, data: result });
+    }
+    if (type === "airport") {
+      const result = apQuery.limit(20).all();
+      return res.json({ success: true, data: result });
     }
 
-    const result = query.limit(20).all();
-    res.json({ success: true, data: result });
+    // No type filter: union both, limit total
+    const stResults = stQuery.limit(10).all();
+    const apResults = apQuery.limit(10).all();
+    res.json({ success: true, data: [...stResults, ...apResults].slice(0, 20) });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
   }
 });
 
-// GET /api/stations/:id
+// GET /api/stations/:id — checks both stations and airports
 router.get("/:id", (req: Request, res: Response) => {
   try {
-    const station = seedDb.select().from(stations).where(eq(stations.id, parseInt(req.params.id))).get();
-    if (!station) { res.status(404).json({ success: false, error: "Station not found" }); return; }
-    res.json({ success: true, data: station });
+    const id = parseInt(req.params.id);
+    let result = seedDb.select().from(stations).where(eq(stations.id, id)).get();
+    if (!result) result = seedDb.select().from(airports).where(eq(airports.id, id)).get();
+    if (!result) { res.status(404).json({ success: false, error: "Station not found" }); return; }
+    res.json({ success: true, data: result });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
   }

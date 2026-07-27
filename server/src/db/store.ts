@@ -1,6 +1,6 @@
 import { eq, desc } from "drizzle-orm";
 import { seedDb, userDb, saveSeedDb, saveUserDb } from "./index";
-import { stations, trips } from "./schema";
+import { stations, airports, trips } from "./schema";
 
 // --- Station types (unchanged from JSON version) ---
 
@@ -52,8 +52,21 @@ export function getStations(): Station[] {
   return seedDb.select().from(stations).all() as Station[];
 }
 
+export function getAirports(): Station[] {
+  return seedDb.select().from(airports).all() as Station[];
+}
+
 export function getStation(id: number): Station | undefined {
   return seedDb.select().from(stations).where(eq(stations.id, id)).get() as Station | undefined;
+}
+
+export function getAirport(id: number): Station | undefined {
+  return seedDb.select().from(airports).where(eq(airports.id, id)).get() as Station | undefined;
+}
+
+/** Unified lookup: tries stations then airports */
+export function getStationOrAirport(id: number): Station | undefined {
+  return getStation(id) ?? getAirport(id);
 }
 
 export function createStation(data: Omit<Station, "id" | "createdAt">): Station {
@@ -76,12 +89,12 @@ export function createStation(data: Omit<Station, "id" | "createdAt">): Station 
 // --- Trip CRUD ---
 
 export function getTrips(): Trip[] {
-  const allTrips = seedDb.select().from(trips).orderBy(desc(trips.departureDate), desc(trips.id)).all() as Trip[];
+  const allTrips = userDb.select().from(trips).orderBy(desc(trips.departureDate), desc(trips.id)).all() as Trip[];
   return allTrips;
 }
 
 export function getTrip(id: number): Trip | undefined {
-  return seedDb.select().from(trips).where(eq(trips.id, id)).get() as Trip | undefined;
+  return userDb.select().from(trips).where(eq(trips.id, id)).get() as Trip | undefined;
 }
 
 export function createTrip(data: Omit<Trip, "id" | "createdAt" | "updatedAt">): Trip {

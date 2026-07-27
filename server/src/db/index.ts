@@ -1,6 +1,7 @@
 import initSqlJs from "sql.js";
 import { drizzle } from "drizzle-orm/sql-js";
 import { seedSchema, userSchema } from "./schema";
+import { airports } from "./schema";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -77,6 +78,29 @@ export async function initDb() {
       )
     `);
     saveUserDb();
+  }
+
+  // Ensure airports table exists
+  const airportsTableExists = seedSqlDb.exec(
+    "SELECT name FROM sqlite_master WHERE type='table' AND name='airports'"
+  );
+  if (airportsTableExists.length === 0) {
+    console.log("Creating airports table in seed.db...");
+    seedSqlDb.run(`
+      CREATE TABLE airports (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        code TEXT,
+        city TEXT NOT NULL,
+        country TEXT NOT NULL,
+        latitude REAL,
+        longitude REAL,
+        type TEXT NOT NULL DEFAULT 'airport',
+        timezone TEXT,
+        created_at TEXT DEFAULT (datetime('now')) NOT NULL
+      )
+    `);
+    saveSeedDb();
   }
 
   userDb = drizzle(userSqlDb, { schema: userSchema });

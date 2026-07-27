@@ -1,6 +1,6 @@
 import { Router, Request, Response } from "express";
 import { seedDb, userDb, saveUserDb } from "../db/index";
-import { trips, stations } from "../db/schema";
+import { trips, stations, airports } from "../db/schema";
 import { eq, desc, sql, inArray } from "drizzle-orm";
 import { and } from "drizzle-orm";
 import { computeDuration, computeDistance } from "../geo";
@@ -20,7 +20,7 @@ router.get("/", (_req: Request, res: Response) => {
   try {
     const allTrips = userDb.select().from(trips).orderBy(desc(trips.departureDate), desc(trips.id)).all();
 
-    // Batch-fetch all relevant stations
+    // Batch-fetch all relevant stations + airports
     const stationIds = new Set<number>();
     allTrips.forEach(t => { stationIds.add(t.departureStationId); stationIds.add(t.arrivalStationId); });
     const ids = Array.from(stationIds);
@@ -30,6 +30,10 @@ router.get("/", (_req: Request, res: Response) => {
         inArray(stations.id, ids)
       ).all();
       foundStations.forEach(s => stationMap.set(s.id, s));
+      const foundAirports = seedDb.select().from(airports).where(
+        inArray(airports.id, ids)
+      ).all();
+      foundAirports.forEach(s => stationMap.set(s.id, s));
     }
 
     const data = allTrips.map(trip => ({
@@ -50,8 +54,8 @@ router.get("/:id", (req: Request, res: Response) => {
     const trip = userDb.select().from(trips).where(eq(trips.id, parseInt(req.params.id))).get() as any;
     if (!trip) { res.status(404).json({ success: false, error: "Trip not found" }); return; }
 
-    const depStation = seedDb.select().from(stations).where(eq(stations.id, trip.departureStationId)).get();
-    const arrStation = seedDb.select().from(stations).where(eq(stations.id, trip.arrivalStationId)).get();
+    const depStation = trip.type === "flight" ? seedDb.select().from(airports).where(eq(airports.id, trip.departureStationId)).get() : seedDb.select().from(stations).where(eq(stations.id, trip.departureStationId)).get();
+    const arrStation = trip.type === "flight" ? seedDb.select().from(airports).where(eq(airports.id, trip.arrivalStationId)).get() : seedDb.select().from(stations).where(eq(stations.id, trip.arrivalStationId)).get();
 
     res.json({
       success: true,
@@ -81,8 +85,8 @@ router.post("/", (req: Request, res: Response) => {
       ) ?? data.durationMinutes ?? null,
       distanceKm: (() => {
         if (data.distanceKm != null) return data.distanceKm;
-        const ds = seedDb.select().from(stations).where(eq(stations.id, data.departureStationId)).get() as any;
-        const as = seedDb.select().from(stations).where(eq(stations.id, data.arrivalStationId)).get() as any;
+        const ds = (data.type === "flight" ? seedDb.select().from(airports).where(eq(airports.id, data.departureStationId)).get() : seedDb.select().from(stations).where(eq(stations.id, data.departureStationId)).get()) as any;
+        const as2_ap = (data.type === "flight" ? seedDb.select().from(airports).where(eq(airports.id, data.arrivalStationId)).get() : seedDb.select().from(stations).where(eq(stations.id, data.arrivalStationId)).get()) as any;
         return computeDistance(ds?.latitude, ds?.longitude, as?.latitude, as?.longitude) ?? data.distanceKm ?? null;
       })(),
       cost: data.cost ?? null, currency: data.currency ?? null,
@@ -125,8 +129,8 @@ router.put("/:id", (req: Request, res: Response) => {
     if (updateData.distanceKm === undefined) {
       const depId = updateData.departureStationId ?? existing.departureStationId;
       const arrId = updateData.arrivalStationId ?? existing.arrivalStationId;
-      const ds = seedDb.select().from(stations).where(eq(stations.id, depId)).get() as any;
-      const as2 = seedDb.select().from(stations).where(eq(stations.id, arrId)).get() as any;
+      const ds = (existing.type === "flight" ? seedDb.select().from(airports).where(eq(airports.id, depId)).get() : seedDb.select().from(stations).where(eq(stations.id, depId)).get()) as any;
+      const as2 = (existing.type === "flight" ? seedDb.select().from(airports).where(eq(airports.id, arrId)).get() : seedDb.select().from(stations).where(eq(stations.id, arrId)).get()) as any;
       const dist = computeDistance(ds?.latitude, ds?.longitude, as2?.latitude, as2?.longitude);
       if (dist !== null) updateData.distanceKm = dist;
     }

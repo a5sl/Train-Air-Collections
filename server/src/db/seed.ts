@@ -1,6 +1,6 @@
 import { sql } from "drizzle-orm";
 import { seedDb, saveSeedDb } from "./index";
-import { stations, operators } from "./schema";
+import { stations, airports, operators } from "./schema";
 import { getStations, createTrip } from "./store";
 import { chinaRailStations } from "./seed-china-rail";
 import { chinaAirports } from "./seed-china-air";
@@ -41,13 +41,30 @@ export function seedStations(): number {
   const count = seedDb.select().from(stations).get() as any;
   if (count.c > 0) return count.c as number;
 
-  const all = [...chinaRailStations, ...chinaAirports, ...intlAirports, ...intlRailStations];
+  // Train stations only (China + international)
+  const all = [...chinaRailStations, ...intlRailStations];
   const now = new Date().toISOString();
-  for (let i = 0; i < all.length; i++) {
-    const s = all[i];
+  for (const s of all) {
     seedDb.insert(stations).values({
       name: s.name, code: s.code, city: s.city, country: s.country,
       latitude: s.lat, longitude: s.lng, type: s.type, createdAt: now,
+      timezone: null,
+    }).run();
+  }
+  saveSeedDb();
+  return all.length;
+}
+
+export function seedAirports(): number {
+  const count = seedDb.select().from(airports).get() as any;
+  if (count.c > 0) return count.c as number;
+
+  const all = [...chinaAirports, ...intlAirports];
+  const now = new Date().toISOString();
+  for (const a of all) {
+    seedDb.insert(airports).values({
+      name: a.name, code: a.code, city: a.city, country: a.country,
+      latitude: a.lat, longitude: a.lng, type: "airport" as any, createdAt: now,
       timezone: null,
     }).run();
   }
@@ -150,7 +167,8 @@ export function importTripsFromCSV(csvText: string): { imported: number; errors:
     let arrId = findStation(arrName);
     if (arrId === undefined) {
       try {
-        const newStation = seedDb.insert(stations).values({
+        const table = row["type"] === "flight" ? airports : stations;
+        const newStation = seedDb.insert(table).values({
           name: arrName,
           city: arrName,
           country: "中国",

@@ -1,4 +1,4 @@
-// ==== INTERNATIONAL RAILWAY STATIONS ====
+// ==== INTERNATIONAL RAIL STATIONS ====
 export const intlRailStations = [
   { name:"东京站", code:null, city:"东京", country:"日本", lat:35.6812, lng:139.7671, type:"train_station" },
   { name:"新宿站", code:null, city:"东京", country:"日本", lat:35.6896, lng:139.7006, type:"train_station" },
@@ -11,12 +11,12 @@ export const intlRailStations = [
   { name:"釜山站", code:null, city:"釜山", country:"韩国", lat:35.1152, lng:129.0414, type:"train_station" },
   { name:"巴黎北站", code:null, city:"巴黎", country:"法国", lat:48.8809, lng:2.3553, type:"train_station" },
   { name:"巴黎里昂站", code:null, city:"巴黎", country:"法国", lat:48.8448, lng:2.3735, type:"train_station" },
-  { name:"伦敦圣潘克拉斯站", code:null, city:"伦敦", country:"英国", lat:51.5320, lng:-0.1260, type:"train_station" },
+  { name:"伦敦圣潘克拉斯站", code:null, city:"伦敦", country:"英国", lat:51.532, lng:-0.126, type:"train_station" },
   { name:"柏林中央车站", code:null, city:"柏林", country:"德国", lat:52.5256, lng:13.3694, type:"train_station" },
   { name:"法兰克福中央车站", code:null, city:"法兰克福", country:"德国", lat:50.1073, lng:8.6638, type:"train_station" },
-  { name:"罗马特米尼站", code:null, city:"罗马", country:"意大利", lat:41.9009, lng:12.5020, type:"train_station" },
+  { name:"罗马特米尼站", code:null, city:"罗马", country:"意大利", lat:41.9009, lng:12.502, type:"train_station" },
   { name:"马德里阿托查站", code:null, city:"马德里", country:"西班牙", lat:40.4067, lng:-3.6892, type:"train_station" },
   { name:"阿姆斯特丹中央站", code:null, city:"阿姆斯特丹", country:"荷兰", lat:52.3792, lng:4.8994, type:"train_station" },
   { name:"纽约宾夕法尼亚站", code:null, city:"纽约", country:"美国", lat:40.7506, lng:-73.9936, type:"train_station" },
-  { name:"华盛顿联合车站", code:null, city:"华盛顿", country:"美国", lat:38.8978, lng:-77.0062, type:"train_station" },
+  { name:"华盛顿联合车站", code:null, city:"华盛顿", country:"美国", lat:38.8978, lng:-77.0062, type:"train_station" }
 ];

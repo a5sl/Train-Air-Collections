@@ -3,7 +3,7 @@ import cors from "cors";
 import { initDb } from "./db/index";
 import tripsRouter from "./routes/trips";
 import stationsRouter from "./routes/stations";
-import { seedStations, seedOperatorsData, getOperators, addOperator, importTripsFromCSV } from "./db/seed";
+import { seedStations, seedAirports, seedOperatorsData, getOperators, addOperator, importTripsFromCSV } from "./db/seed";
 import { importByAirFlights } from "./db/import-byair";
 
 const app = express();
@@ -39,8 +39,9 @@ app.post("/api/operators", (req, res) => {
 app.post("/api/seed", (_req, res) => {
   try {
     const nStations = seedStations();
+    const nAirports = seedAirports();
     const nOperators = seedOperatorsData();
-    res.json({ success: true, data: { stations: nStations, operators: nOperators } });
+    res.json({ success: true, data: { stations: nStations, airports: nAirports, operators: nOperators } });
   } catch (e: any) {
     res.status(500).json({ success: false, error: e.message });
   }

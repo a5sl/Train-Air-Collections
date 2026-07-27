@@ -1,7 +1,7 @@
 import { sqliteTable, integer, real, text } from "drizzle-orm/sqlite-core";
 import { sql } from "drizzle-orm";
 
-// ==================== Seed schema (seed.db): stations + operators ====================
+// ==================== Seed schema (seed.db): stations + airports + operators ====================
 
 export const stations = sqliteTable("stations", {
   id: integer("id").primaryKey({ autoIncrement: true }),
@@ -24,7 +24,20 @@ export const operators = sqliteTable("operators", {
   createdAt: text("created_at").default(sql`(datetime('now'))`).notNull(),
 });
 
-export const seedSchema = { stations, operators };
+export const airports = sqliteTable("airports", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  name: text("name").notNull(),
+  code: text("code"),
+  city: text("city").notNull(),
+  country: text("country").notNull(),
+  latitude: real("latitude"),
+  longitude: real("longitude"),
+  type: text("type", { enum: ["airport"] }).notNull().default("airport"),
+  timezone: text("timezone"),
+  createdAt: text("created_at").default(sql`(datetime('now'))`).notNull(),
+});
+
+export const seedSchema = { stations, airports, operators };
 
 // ==================== User schema (user.db): trips only ====================
 // NOTE: cross-db FK not supported; station IDs are plain integers.
