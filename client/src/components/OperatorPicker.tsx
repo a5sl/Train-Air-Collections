@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Search, Plus, X } from "lucide-react";
 import { api } from "../lib/api";
+import { useToast } from "./fx/Toast";
 
 interface Props {
   label: string;
@@ -10,6 +11,7 @@ interface Props {
 }
 
 export default function OperatorPicker({ label, value, onChange, placeholder }: Props) {
+  const { toast } = useToast();
   const [query, setQuery] = useState(value || "");
   const [open, setOpen] = useState(false);
   const [results, setResults] = useState<any[]>([]);
@@ -65,7 +67,7 @@ export default function OperatorPicker({ label, value, onChange, placeholder }: 
       setShowAdd(false);
      setNewOp({ name: "", type: "railway",  });
       setNewOp({ name: "", type: "railway" });
-    } catch { alert("添败"); }
+    } catch { toast("添败", 'err'); }
   };
 
   return (

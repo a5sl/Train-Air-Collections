@@ -6,7 +6,7 @@
     <title>行旅录 · 驿轨</title>
     <link rel="preconnect" href="https://fonts.loli.net" crossorigin />
     <link
-      href="https://fonts.loli.net/css2?family=Noto+Serif+SC:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+      href="https://fonts.loli.net/css2?family=Noto+Serif+SC:wght@400;600;700;900&family=Noto+Sans+SC:wght@400;500;700;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
     <link
@@ -17,9 +17,19 @@
     />
     <script>
       (function() {
-        var t = localStorage.getItem('yigui-theme');
-        if (!t) t = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-        document.documentElement.setAttribute('data-theme', t);
+        var root = document.documentElement;
+        var style = localStorage.getItem('yigui-style');
+        if (['xuanzhi','inknight','blueprint','porcelain','ticket'].indexOf(style) < 0) style = 'xuanzhi';
+        var mode = localStorage.getItem('yigui-theme');
+        if (['light','dark','system'].indexOf(mode) < 0) mode = 'system';
+        var resolved = mode === 'system'
+          ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+          : mode;
+        var motion = localStorage.getItem('yigui-motion');
+        if (['subtle','standard','lively'].indexOf(motion) < 0) motion = 'standard';
+        root.setAttribute('data-style', style);
+        root.setAttribute('data-theme', resolved);
+        root.setAttribute('data-motion', motion);
       })();
     </script>
   </head>

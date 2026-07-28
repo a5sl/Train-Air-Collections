@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Train, Plane, Search, Plus, X, ChevronDown } from "lucide-react";
 import { api } from "../lib/api";
+import { useToast } from "../components/fx/Toast";
 import { useStationSearch } from "../hooks/useStationSearch";
 import { DateField } from "../lib/dateInput";
 import OperatorPicker from "../components/OperatorPicker";
@@ -78,6 +79,7 @@ function StationPicker({
   stationType: "train_station" | "airport";
 }) {
   const { results, loading, search } = useStationSearch();
+  const { toast } = useToast();
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
@@ -131,7 +133,7 @@ function StationPicker({
       setIsCreating(false);
       setNewStation({ name: "", code: "", city: "", country: "", latitude: "", longitude: "" });
     } catch (err) {
-      alert("创建站点失败");
+      toast("创建站点失败", 'err');
     }
   };
 
@@ -268,6 +270,7 @@ export default function AddTrip() {
   const [submitting, setSubmitting] = useState(false);
   const [showOptional, setShowOptional] = useState(false);
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   const update = (patch: Partial<FormData>) => {
     setForm((prev) => {
@@ -290,11 +293,11 @@ export default function AddTrip() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.departureStation || !form.arrivalStation) {
-      alert("请选择起止站点");
+      toast("请选择起止站点", 'warn');
       return;
     }
     if (!form.departureDate || !form.departureTime || !form.arrivalTime || !form.operator || !form.trainFlightNumber) {
-      alert("请填写所有必填项");
+      toast("请填写所有必填项", 'warn');
       return;
     }
     setSubmitting(true);
@@ -325,7 +328,7 @@ export default function AddTrip() {
       });
       navigate("/trips");
     } catch (err: any) {
-      alert("保存失败: " + err.message);
+      toast("保存失败: " + err.message, 'err');
     } finally {
       setSubmitting(false);
     }

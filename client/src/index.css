@@ -2,13 +2,53 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ============================================================
+   行旅录 · 外观系统
+   双轴：data-theme (light/dark) × data-style (5 种风格包)
+   动效：data-motion (subtle/standard/lively) -> --motion-scale / --motion-speed
+   ============================================================ */
+
 :root {
   --ease-ink: cubic-bezier(.22, 1, .36, 1);
   --ease-stamp: cubic-bezier(.34, 1.56, .64, 1);
+
+  /* 动效 */
+  --motion-scale: 1;
+  --motion-speed: 1;
+
+  /* 字体（随风格切换） */
+  --font-display: "Noto Serif SC", "Songti SC", "SimSun", serif;
+  --font-body: "Noto Sans SC", -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+  --font-mono: "IBM Plex Mono", Consolas, "Courier New", monospace;
+
+  /* 形制 */
+  --radius-card: 0.75rem;
+  --radius-btn: 0.5rem;
+  --c-line-style: solid;
+  --shadow-card: 0 1px 2px rgb(74 55 40 / 0.06);
+  --shadow-pop: 0 12px 32px rgb(74 55 40 / 0.14);
+
+  /* 氛围层 */
+  --c-noise-opacity: 0.03;
+  --c-grid-opacity: 0.04;
+  --deco-mountain: 0.04;
+  --deco-cloud: 0.05;
+
+  /* 地图配色 */
+  --c-train-line: 200 138 61;
+  --c-flight-line: 193 68 59;
+  --c-train-station: 201 162 59;
+  --c-flight-station: 155 48 88;
+  --c-map-bg: 253 250 245;
 }
 
+[data-motion="subtle"]  { --motion-scale: 0.4; --motion-speed: 1.6; }
+[data-motion="standard"]{ --motion-scale: 1;   --motion-speed: 1; }
+[data-motion="lively"]  { --motion-scale: 1.7; --motion-speed: 0.78; }
+
+/* ---------- 宣纸驿馆 · 昼 ---------- */
 :root,
-[data-theme="light"] {
+[data-style="xuanzhi"] {
   --c-surface: 253 250 245;
   --c-surface-card: 253 250 245;
   --c-surface-card-alt: 250 245 237;
@@ -23,13 +63,14 @@
   --c-brand-deep: 133 75 54;
   --c-brand-glow: 228 164 139;
   --c-brand-tint: 243 230 223;
+  --c-accent: 107 127 140;
+  --c-accent-tint: 228 233 236;
   --c-screen-text: 227 236 240;
   --c-screen-data: 228 164 139;
-  --c-noise-opacity: 0.03;
-  --c-grid-opacity: 0.04;
 }
 
-[data-theme="dark"] {
+/* ---------- 宣纸驿馆 · 夜 ---------- */
+[data-style="xuanzhi"][data-theme="dark"] {
   --c-surface: 23 33 43;
   --c-surface-card: 30 43 56;
   --c-surface-card-alt: 36 51 66;
@@ -44,10 +85,298 @@
   --c-brand-deep: 228 164 139;
   --c-brand-glow: 228 164 139;
   --c-brand-tint: 45 62 78;
+  --c-accent: 148 168 178;
+  --c-accent-tint: 34 48 60;
   --c-screen-text: 227 236 240;
   --c-screen-data: 228 164 139;
   --c-noise-opacity: 0.02;
   --c-grid-opacity: 0.03;
+  --deco-mountain: 0.05;
+  --deco-cloud: 0.04;
+  --c-train-line: 216 162 89;
+  --c-flight-line: 224 110 96;
+  --c-train-station: 216 162 89;
+  --c-flight-station: 214 96 128;
+  --c-map-bg: 23 33 43;
+  --shadow-card: 0 1px 3px rgb(0 0 0 / 0.3);
+  --shadow-pop: 0 12px 32px rgb(0 0 0 / 0.5);
+}
+
+/* ---------- 玄夜墨驿 · 暮 ---------- */
+[data-style="inknight"] {
+  --c-surface: 233 231 226;
+  --c-surface-card: 239 237 232;
+  --c-surface-card-alt: 226 223 216;
+  --c-surface-screen: 26 32 40;
+  --c-content: 43 48 54;
+  --c-content-secondary: 120 126 133;
+  --c-content-tertiary: 152 157 163;
+  --c-line: 205 202 195;
+  --c-line-subtle: 222 220 213;
+  --c-brand: 178 62 45;
+  --c-brand-hover: 156 52 38;
+  --c-brand-deep: 132 44 32;
+  --c-brand-glow: 214 122 100;
+  --c-brand-tint: 240 224 218;
+  --c-accent: 158 122 34;
+  --c-accent-tint: 238 228 205;
+  --c-screen-text: 230 232 235;
+  --c-screen-data: 240 176 120;
+  --c-noise-opacity: 0.04;
+  --c-grid-opacity: 0.03;
+  --deco-mountain: 0.05;
+  --deco-cloud: 0.05;
+  --c-train-line: 176 132 42;
+  --c-flight-line: 178 62 45;
+  --c-train-station: 176 132 42;
+  --c-flight-station: 178 62 45;
+  --c-map-bg: 233 231 226;
+  --shadow-card: 0 1px 3px rgb(43 48 54 / 0.08);
+  --shadow-pop: 0 12px 32px rgb(43 48 54 / 0.18);
+}
+
+/* ---------- 玄夜墨驿 · 玄 ---------- */
+[data-style="inknight"][data-theme="dark"] {
+  --c-surface: 13 17 23;
+  --c-surface-card: 20 26 34;
+  --c-surface-card-alt: 27 34 44;
+  --c-surface-screen: 8 11 16;
+  --c-content: 226 224 218;
+  --c-content-secondary: 148 152 158;
+  --c-content-tertiary: 108 114 122;
+  --c-line: 40 48 58;
+  --c-line-subtle: 30 37 46;
+  --c-brand: 205 92 62;
+  --c-brand-hover: 222 116 86;
+  --c-brand-deep: 232 146 116;
+  --c-brand-glow: 232 146 116;
+  --c-brand-tint: 43 36 34;
+  --c-accent: 212 175 55;
+  --c-accent-tint: 45 40 26;
+  --c-screen-text: 230 232 235;
+  --c-screen-data: 240 180 100;
+  --c-noise-opacity: 0.025;
+  --c-grid-opacity: 0.035;
+  --deco-mountain: 0.06;
+  --deco-cloud: 0.035;
+  --c-train-line: 212 175 55;
+  --c-flight-line: 205 92 62;
+  --c-train-station: 212 175 55;
+  --c-flight-station: 205 92 62;
+  --c-map-bg: 13 17 23;
+  --shadow-card: 0 1px 3px rgb(0 0 0 / 0.4);
+  --shadow-pop: 0 14px 36px rgb(0 0 0 / 0.6);
+}
+
+/* ---------- 铁路蓝图 · 白描 ---------- */
+[data-style="blueprint"] {
+  --c-surface: 243 246 250;
+  --c-surface-card: 248 250 253;
+  --c-surface-card-alt: 236 241 248;
+  --c-surface-screen: 16 34 56;
+  --c-content: 23 50 79;
+  --c-content-secondary: 96 125 152;
+  --c-content-tertiary: 140 162 182;
+  --c-line: 178 198 218;
+  --c-line-subtle: 216 228 240;
+  --c-brand: 29 78 137;
+  --c-brand-hover: 24 66 116;
+  --c-brand-deep: 18 54 96;
+  --c-brand-glow: 96 148 208;
+  --c-brand-tint: 222 233 245;
+  --c-accent: 224 122 26;
+  --c-accent-tint: 248 232 214;
+  --c-screen-text: 214 230 246;
+  --c-screen-data: 255 209 102;
+  --c-noise-opacity: 0.02;
+  --c-grid-opacity: 0.10;
+  --deco-mountain: 0;
+  --deco-cloud: 0.03;
+  --c-train-line: 29 78 137;
+  --c-flight-line: 224 122 26;
+  --c-train-station: 29 78 137;
+  --c-flight-station: 224 122 26;
+  --c-map-bg: 243 246 250;
+  --font-display: "IBM Plex Mono", Consolas, "Courier New", monospace;
+  --radius-card: 0.25rem;
+  --radius-btn: 0.25rem;
+  --c-line-style: dashed;
+  --shadow-card: 0 1px 2px rgb(23 50 79 / 0.06);
+  --shadow-pop: 0 12px 28px rgb(23 50 79 / 0.16);
+}
+
+/* ---------- 铁路蓝图 · 晒图 ---------- */
+[data-style="blueprint"][data-theme="dark"] {
+  --c-surface: 13 40 74;
+  --c-surface-card: 17 49 88;
+  --c-surface-card-alt: 22 58 102;
+  --c-surface-screen: 8 24 44;
+  --c-content: 220 233 246;
+  --c-content-secondary: 148 178 208;
+  --c-content-tertiary: 104 138 172;
+  --c-line: 62 98 140;
+  --c-line-subtle: 40 72 110;
+  --c-brand: 245 197 66;
+  --c-brand-hover: 250 213 106;
+  --c-brand-deep: 212 164 32;
+  --c-brand-glow: 250 213 106;
+  --c-brand-tint: 30 58 92;
+  --c-accent: 158 203 240;
+  --c-accent-tint: 24 52 86;
+  --c-screen-text: 220 233 246;
+  --c-screen-data: 245 197 66;
+  --c-noise-opacity: 0.015;
+  --c-grid-opacity: 0.14;
+  --deco-mountain: 0;
+  --deco-cloud: 0.025;
+  --c-train-line: 245 197 66;
+  --c-flight-line: 158 203 240;
+  --c-train-station: 245 197 66;
+  --c-flight-station: 158 203 240;
+  --c-map-bg: 13 40 74;
+  --shadow-card: 0 1px 3px rgb(0 0 0 / 0.35);
+  --shadow-pop: 0 14px 36px rgb(0 0 0 / 0.55);
+}
+[data-style="blueprint"][data-theme="dark"] .btn-primary,
+[data-style="blueprint"][data-theme="dark"] .btn-primary * { color: rgb(13 40 74); }
+
+/* ---------- 青花瓷韵 · 昼 ---------- */
+[data-style="porcelain"] {
+  --c-surface: 246 248 247;
+  --c-surface-card: 250 252 251;
+  --c-surface-card-alt: 240 244 242;
+  --c-surface-screen: 20 32 38;
+  --c-content: 44 58 66;
+  --c-content-secondary: 122 142 148;
+  --c-content-tertiary: 160 176 180;
+  --c-line: 208 222 224;
+  --c-line-subtle: 228 236 236;
+  --c-brand: 47 84 160;
+  --c-brand-hover: 40 71 136;
+  --c-brand-deep: 31 57 110;
+  --c-brand-glow: 122 156 214;
+  --c-brand-tint: 224 232 244;
+  --c-accent: 111 168 148;
+  --c-accent-tint: 226 238 232;
+  --c-screen-text: 226 234 236;
+  --c-screen-data: 148 196 178;
+  --c-noise-opacity: 0.025;
+  --c-grid-opacity: 0.03;
+  --deco-mountain: 0.035;
+  --deco-cloud: 0.06;
+  --c-train-line: 47 84 160;
+  --c-flight-line: 111 168 148;
+  --c-train-station: 47 84 160;
+  --c-flight-station: 111 168 148;
+  --c-map-bg: 246 248 247;
+  --radius-card: 0.9rem;
+  --radius-btn: 0.6rem;
+  --shadow-card: 0 1px 3px rgb(44 58 66 / 0.06);
+  --shadow-pop: 0 12px 32px rgb(44 58 66 / 0.15);
+}
+
+/* ---------- 青花瓷韵 · 夜 ---------- */
+[data-style="porcelain"][data-theme="dark"] {
+  --c-surface: 14 22 26;
+  --c-surface-card: 20 30 35;
+  --c-surface-card-alt: 27 39 45;
+  --c-surface-screen: 9 15 18;
+  --c-content: 222 232 232;
+  --c-content-secondary: 142 160 162;
+  --c-content-tertiary: 102 122 126;
+  --c-line: 42 58 64;
+  --c-line-subtle: 32 45 50;
+  --c-brand: 126 166 224;
+  --c-brand-hover: 156 190 234;
+  --c-brand-deep: 176 204 240;
+  --c-brand-glow: 176 204 240;
+  --c-brand-tint: 30 44 62;
+  --c-accent: 111 178 156;
+  --c-accent-tint: 26 44 40;
+  --c-screen-text: 222 232 232;
+  --c-screen-data: 148 206 182;
+  --c-noise-opacity: 0.02;
+  --c-grid-opacity: 0.03;
+  --deco-mountain: 0.045;
+  --deco-cloud: 0.04;
+  --c-train-line: 126 166 224;
+  --c-flight-line: 111 178 156;
+  --c-train-station: 126 166 224;
+  --c-flight-station: 111 178 156;
+  --c-map-bg: 14 22 26;
+  --shadow-card: 0 1px 3px rgb(0 0 0 / 0.35);
+  --shadow-pop: 0 14px 36px rgb(0 0 0 / 0.55);
+}
+[data-style="porcelain"][data-theme="dark"] .btn-primary,
+[data-style="porcelain"][data-theme="dark"] .btn-primary * { color: rgb(14 22 26); }
+
+/* ---------- 硬板车票 · 昼 ---------- */
+[data-style="ticket"] {
+  --c-surface: 233 223 198;
+  --c-surface-card: 238 230 208;
+  --c-surface-card-alt: 226 214 186;
+  --c-surface-screen: 38 32 26;
+  --c-content: 43 38 32;
+  --c-content-secondary: 122 110 92;
+  --c-content-tertiary: 158 146 126;
+  --c-line: 196 178 148;
+  --c-line-subtle: 216 202 174;
+  --c-brand: 192 51 38;
+  --c-brand-hover: 168 42 31;
+  --c-brand-deep: 142 35 26;
+  --c-brand-glow: 226 116 96;
+  --c-brand-tint: 238 214 200;
+  --c-accent: 148 124 38;
+  --c-accent-tint: 232 220 190;
+  --c-screen-text: 240 232 214;
+  --c-screen-data: 244 176 122;
+  --c-noise-opacity: 0.05;
+  --c-grid-opacity: 0.02;
+  --deco-mountain: 0.03;
+  --deco-cloud: 0.045;
+  --c-train-line: 192 51 38;
+  --c-flight-line: 74 92 122;
+  --c-train-station: 192 51 38;
+  --c-flight-station: 74 92 122;
+  --c-map-bg: 233 223 198;
+  --font-display: "Noto Sans SC", "Microsoft YaHei", sans-serif;
+  --radius-card: 0.375rem;
+  --radius-btn: 0.25rem;
+  --shadow-card: 2px 2px 0 rgb(43 38 32 / 0.18);
+  --shadow-pop: 4px 4px 0 rgb(43 38 32 / 0.28);
+}
+
+/* ---------- 硬板车票 · 夜行 ---------- */
+[data-style="ticket"][data-theme="dark"] {
+  --c-surface: 24 30 24;
+  --c-surface-card: 31 38 31;
+  --c-surface-card-alt: 38 46 38;
+  --c-surface-screen: 14 18 14;
+  --c-content: 232 226 208;
+  --c-content-secondary: 156 152 132;
+  --c-content-tertiary: 116 114 98;
+  --c-line: 56 66 54;
+  --c-line-subtle: 44 52 42;
+  --c-brand: 226 88 62;
+  --c-brand-hover: 238 116 90;
+  --c-brand-deep: 244 146 120;
+  --c-brand-glow: 244 146 120;
+  --c-brand-tint: 56 40 32;
+  --c-accent: 214 178 92;
+  --c-accent-tint: 52 46 28;
+  --c-screen-text: 232 226 208;
+  --c-screen-data: 244 186 122;
+  --c-noise-opacity: 0.04;
+  --c-grid-opacity: 0.02;
+  --deco-mountain: 0.04;
+  --deco-cloud: 0.03;
+  --c-train-line: 226 88 62;
+  --c-flight-line: 148 168 196;
+  --c-train-station: 226 88 62;
+  --c-flight-station: 148 168 196;
+  --c-map-bg: 24 30 24;
+  --shadow-card: 2px 2px 0 rgb(0 0 0 / 0.35);
+  --shadow-pop: 4px 4px 0 rgb(0 0 0 / 0.5);
 }
 
 @layer base {
@@ -60,39 +389,52 @@
 
 @layer components {
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg bg-brand px-4 py-2.5 text-sm font-medium text-white
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium text-white
            shadow-sm transition-all hover:bg-brand-hover focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2
            disabled:opacity-50 disabled:cursor-not-allowed;
+    background-color: rgb(var(--c-brand));
+    border-radius: var(--radius-btn);
   }
   .btn-secondary {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg border border-line bg-surface px-4 py-2.5
+    @apply inline-flex items-center justify-center gap-2 border border-line bg-surface px-4 py-2.5
            text-sm font-medium text-content shadow-sm transition-all hover:bg-surface-card-alt
            focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2;
+    border-radius: var(--radius-btn);
   }
   .btn-danger {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg bg-red-600 px-4 py-2.5 text-sm font-medium text-white
+    @apply inline-flex items-center justify-center gap-2 bg-red-600 px-4 py-2.5 text-sm font-medium text-white
            shadow-sm transition-all hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2;
+    border-radius: var(--radius-btn);
   }
   .input-field {
-    @apply block w-full rounded-lg border border-line bg-surface px-3.5 py-2.5 text-sm text-content
+    @apply block w-full border border-line bg-surface px-3.5 py-2.5 text-sm text-content
            shadow-sm placeholder:text-content-tertiary focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/30
            transition-colors;
+    border-radius: var(--radius-btn);
   }
   .select-field {
-    @apply block w-full rounded-lg border border-line bg-surface px-3.5 py-2.5 text-sm text-content
+    @apply block w-full border border-line bg-surface px-3.5 py-2.5 text-sm text-content
            shadow-sm focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/30 transition-colors;
+    border-radius: var(--radius-btn);
   }
   .label-text {
     @apply block text-sm font-medium text-content-secondary mb-1.5;
   }
   .card {
-    @apply rounded-xl border border-line bg-surface-card shadow-sm transition-colors;
+    @apply border border-line bg-surface-card transition-colors;
+    border-radius: var(--radius-card);
+    border-style: var(--c-line-style);
+    box-shadow: var(--shadow-card);
   }
   .card-alt {
-    @apply rounded-xl border border-line bg-surface-card-alt shadow-sm transition-colors;
+    @apply border border-line bg-surface-card-alt transition-colors;
+    border-radius: var(--radius-card);
+    border-style: var(--c-line-style);
+    box-shadow: var(--shadow-card);
   }
   .screen-panel {
-    @apply rounded-xl border border-brand/20 bg-surface-screen p-5 relative overflow-hidden;
+    @apply border border-brand/20 bg-surface-screen p-5 relative overflow-hidden transition-colors;
+    border-radius: var(--radius-card);
   }
   .screen-panel::before {
     content: '';
@@ -107,6 +449,7 @@
   }
 }
 
+/* ============ 氛围层 ============ */
 .ambient-noise {
   position: fixed;
   inset: 0;
@@ -115,6 +458,7 @@
   opacity: var(--c-noise-opacity);
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   background-size: 256px 256px;
+  transition: opacity 0.4s var(--ease-ink);
 }
 
 .ambient-grid {
@@ -125,6 +469,7 @@
   opacity: var(--c-grid-opacity);
   background-image: radial-gradient(circle, rgb(var(--c-content)) 0.5px, transparent 0.5px);
   background-size: 24px 24px;
+  transition: opacity 0.4s var(--ease-ink);
 }
 
 .ambient-mountain {
@@ -135,9 +480,44 @@
   height: 120px;
   pointer-events: none;
   z-index: 0;
-  opacity: 0.04;
+  opacity: var(--deco-mountain);
+  transition: opacity 0.4s var(--ease-ink);
 }
 
+.ambient-cloud {
+  position: fixed;
+  left: -30%;
+  pointer-events: none;
+  z-index: 0;
+  color: rgb(var(--c-content));
+  opacity: var(--deco-cloud);
+  animation: cloud-drift linear infinite;
+  transition: opacity 0.4s var(--ease-ink);
+}
+@keyframes cloud-drift {
+  to { transform: translateX(160vw); }
+}
+
+.ambient-plane {
+  position: fixed;
+  top: 12%;
+  left: -10%;
+  pointer-events: none;
+  z-index: 0;
+  color: rgb(var(--c-content));
+  opacity: calc(var(--deco-cloud) * 1.4);
+  animation: plane-cross 46s linear infinite;
+  animation-delay: 8s;
+}
+@keyframes plane-cross {
+  0%   { transform: translate(0, 0); opacity: 0; }
+  4%   { opacity: calc(var(--deco-cloud) * 1.6); }
+  50%  { transform: translate(60vw, -3vh); }
+  96%  { opacity: calc(var(--deco-cloud) * 1.6); }
+  100% { transform: translate(120vw, -6vh); opacity: 0; }
+}
+
+/* ============ 票据细节 ============ */
 .reg-mark {
   position: absolute;
   width: 12px;
@@ -150,18 +530,8 @@
   position: absolute;
   background: rgb(var(--c-line));
 }
-.reg-mark::before {
-  width: 12px;
-  height: 1px;
-  top: 50%;
-  left: 0;
-}
-.reg-mark::after {
-  width: 1px;
-  height: 12px;
-  left: 50%;
-  top: 0;
-}
+.reg-mark::before { width: 12px; height: 1px; top: 50%; left: 0; }
+.reg-mark::after  { width: 1px; height: 12px; left: 50%; top: 0; }
 .reg-mark-tl { top: -6px; left: -6px; }
 .reg-mark-tr { top: -6px; right: -6px; }
 .reg-mark-bl { bottom: -6px; left: -6px; }
@@ -189,16 +559,307 @@
   stroke-dashoffset: 1000;
 }
 .trajectory-path.animate {
-  animation: draw-line 0.9s var(--ease-ink) forwards;
+  animation: draw-line calc(0.9s / var(--motion-speed)) var(--ease-ink) forwards;
 }
 @keyframes draw-line {
   to { stroke-dashoffset: 0; }
+}
+
+.vertical-text {
+  writing-mode: vertical-rl;
+  text-orientation: upright;
+  letter-spacing: 0.35em;
+}
+
+/* ============ 交互特效 ============ */
+
+/* 点击钤印 */
+.stamp-ripple {
+  position: fixed;
+  pointer-events: none;
+  z-index: 90;
+  width: 30px;
+  height: 30px;
+  margin: -15px 0 0 -15px;
+  border: 2px solid rgb(var(--c-brand) / 0.9);
+  border-radius: 5px;
+  animation: stamp-down calc(0.5s / var(--motion-speed)) var(--ease-stamp) both;
+}
+.stamp-ripple::after {
+  content: '';
+  position: absolute;
+  inset: -7px;
+  border: 1px solid rgb(var(--c-brand) / 0.55);
+  border-radius: 50%;
+  animation: seal-ring calc(0.62s / var(--motion-speed)) ease-out both;
+}
+@keyframes stamp-down {
+  0%   { opacity: 0.85; transform: scale(1.9) rotate(-16deg); }
+  100% { opacity: 0;    transform: scale(0.72) rotate(-4deg); }
+}
+@keyframes seal-ring {
+  0%   { opacity: 0.7; transform: scale(0.35); }
+  100% { opacity: 0;   transform: scale(1.9); }
+}
+
+/* 页面转场 */
+.page-enter {
+  animation: page-in calc(0.45s / var(--motion-speed)) var(--ease-ink) both;
+}
+@keyframes page-in {
+  0%   { opacity: 0; transform: translateY(14px); filter: blur(5px); }
+  100% { opacity: 1; transform: translateY(0);    filter: blur(0); }
+}
+
+/* 卡片倾斜高光 */
+.tilt-wrap { transform-style: preserve-3d; will-change: transform; }
+.tilt-sheen { position: relative; }
+.tilt-sheen::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: radial-gradient(
+    320px circle at var(--gx, 50%) var(--gy, 50%),
+    rgb(255 255 255 / 0.10),
+    transparent 65%
+  );
+  opacity: 0;
+  transition: opacity 0.3s var(--ease-ink);
+}
+.tilt-sheen:hover::after { opacity: 1; }
+
+/* 磁吸按钮由 JS 驱动 transform，这里只保证平滑回弹 */
+.magnetic { will-change: transform; }
+
+/* 翻牌数字（车站出发屏） */
+.flap-board {
+  display: inline-flex;
+  gap: 0.08em;
+  align-items: center;
+}
+.flap-cell {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0.66em;
+  padding: 0.04em 0.02em;
+  border-radius: 0.12em;
+  background: linear-gradient(180deg, rgb(255 255 255 / 0.07) 0%, rgb(255 255 255 / 0.02) 48%, rgb(0 0 0 / 0.16) 52%, rgb(0 0 0 / 0.08) 100%);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.05), inset 0 -1px 0 rgb(0 0 0 / 0.35);
+  perspective: 3em;
+}
+.flap-cell::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 1px;
+  background: rgb(0 0 0 / 0.4);
+  pointer-events: none;
+}
+.flap-char {
+  display: inline-block;
+  backface-visibility: hidden;
+}
+.flap-char.flipping {
+  animation: flap-turn calc(0.34s / var(--motion-speed)) cubic-bezier(.4,.1,.6,1) both;
+}
+@keyframes flap-turn {
+  0%   { transform: rotateX(0deg); }
+  49%  { transform: rotateX(-88deg); }
+  51%  { transform: rotateX(88deg); }
+  100% { transform: rotateX(0deg); }
+}
+.flap-unit { opacity: 0.6; margin-left: 0.25em; }
+
+/* 撕票（删除） */
+.tearing {
+  animation: tear-away calc(0.55s / var(--motion-speed)) cubic-bezier(.5,-0.2,.7,.4) both;
+  pointer-events: none;
+}
+@keyframes tear-away {
+  0%   { opacity: 1; transform: none; }
+  25%  { transform: rotate(1.4deg) translateX(3px); }
+  100% { opacity: 0; transform: rotate(-3deg) translateY(30px) translateX(-6px); }
+}
+
+/* 列车装载器 */
+.train-loader {
+  position: relative;
+  height: 30px;
+  overflow: hidden;
+}
+.train-loader .rail-bed {
+  position: absolute;
+  left: 0; right: 0; bottom: 5px;
+  height: 4px;
+  background: repeating-linear-gradient(90deg, rgb(var(--c-line)) 0 8px, transparent 8px 15px);
+}
+.train-loader .engine {
+  position: absolute;
+  bottom: 8px;
+  left: -48px;
+  color: rgb(var(--c-brand));
+  animation: chug-across 1.7s linear infinite;
+}
+@keyframes chug-across {
+  to { left: calc(100% + 48px); }
+}
+
+/* 彩蛋列车 */
+.easter-train {
+  position: fixed;
+  bottom: 84px;
+  left: 0;
+  z-index: 95;
+  pointer-events: none;
+  animation: easter-run calc(2.6s / var(--motion-speed)) cubic-bezier(.25,.6,.35,1) both;
+}
+@keyframes easter-run {
+  0%   { transform: translateX(-220px); }
+  100% { transform: translateX(calc(100vw + 220px)); }
+}
+.easter-smoke {
+  position: absolute;
+  border-radius: 50%;
+  background: rgb(var(--c-content) / 0.25);
+  animation: smoke-up 0.9s ease-out both;
+}
+@keyframes smoke-up {
+  0%   { opacity: 0.7; transform: translate(0, 0) scale(0.4); }
+  100% { opacity: 0;   transform: translate(-14px, -26px) scale(1.6); }
+}
+
+/* 里程轨（右侧滚动进度） */
+.scroll-rail {
+  position: fixed;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  height: 36vh;
+  width: 10px;
+  z-index: 30;
+  pointer-events: none;
+}
+.scroll-rail .rail-line {
+  position: absolute;
+  left: 4px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: repeating-linear-gradient(0deg, rgb(var(--c-line)) 0 7px, transparent 7px 13px);
+}
+.scroll-rail .rail-marker {
+  position: absolute;
+  left: 0;
+  width: 10px;
+  transition: top 0.12s linear;
+  color: rgb(var(--c-brand));
+  filter: drop-shadow(0 1px 2px rgb(0 0 0 / 0.25));
+}
+.scroll-rail .rail-readout {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+
+/* 顶栏进度线 */
+.header-progress {
+  position: absolute;
+  left: 0;
+  bottom: -1px;
+  height: 2px;
+  background: rgb(var(--c-brand));
+  transition: width 0.1s linear;
+  opacity: 0.75;
+}
+
+/* 铁轨装饰线 */
+.rail-track {
+  height: 3px;
+  background-image: repeating-linear-gradient(90deg, rgb(var(--c-line)) 0 2px, transparent 2px 13px);
+  background-repeat: repeat-x;
+  background-position: 0 1px;
+  position: relative;
+}
+.rail-track::before,
+.rail-track::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: rgb(var(--c-line) / 0.8);
+}
+.rail-track::before { top: 0; }
+.rail-track::after  { bottom: 0; }
+
+/* 浮层与弹层 */
+.popover-in {
+  animation: pop-in calc(0.26s / var(--motion-speed)) var(--ease-stamp) both;
+  transform-origin: top right;
+}
+@keyframes pop-in {
+  0%   { opacity: 0; transform: scale(0.92) translateY(-6px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.overlay-in { animation: overlay-fade 0.25s ease-out both; }
+@keyframes overlay-fade { from { opacity: 0; } to { opacity: 1; } }
+
+.dialog-in { animation: dialog-pop calc(0.32s / var(--motion-speed)) var(--ease-stamp) both; }
+@keyframes dialog-pop {
+  0%   { opacity: 0; transform: scale(0.9) translateY(10px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.toast-item { animation: toast-in calc(0.4s / var(--motion-speed)) var(--ease-stamp) both; }
+@keyframes toast-in {
+  0%   { opacity: 0; transform: translateY(18px) scale(0.9); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+.toast-item.toast-out { animation: toast-out 0.22s ease-in both; }
+@keyframes toast-out {
+  to { opacity: 0; transform: translateY(10px) scale(0.95); }
+}
+
+/* 键帽 */
+.keycap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.7em;
+  padding: 0.12em 0.5em;
+  border: 1px solid rgb(var(--c-line));
+  border-bottom-width: 3px;
+  border-radius: 0.4em;
+  background: rgb(var(--c-surface-card-alt));
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.4;
+  color: rgb(var(--c-content));
+}
+
+/* 输入落墨 */
+.input-ink {
+  animation: ink-settle calc(0.3s / var(--motion-speed)) var(--ease-stamp);
+}
+@keyframes ink-settle {
+  0%   { transform: scale(1.015); }
+  100% { transform: scale(1); }
 }
 
 .leaflet-container {
   @apply rounded-xl;
   height: 100%;
   width: 100%;
+  background: rgb(var(--c-map-bg));
 }
 
 .station-option {
@@ -218,4 +879,12 @@
 ::selection {
   background: rgb(var(--c-brand) / 0.2);
   color: rgb(var(--c-content));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

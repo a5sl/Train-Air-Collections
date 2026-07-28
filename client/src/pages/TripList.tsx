@@ -6,6 +6,8 @@ import type { Trip } from '../../../shared/types';
 import Reveal from '../components/Reveal';
 import Segmented from '../components/Segmented';
 import TrajectorySVG from '../components/TrajectorySVG';
+import { useToast } from '../components/fx/Toast';
+import TrainLoader from '../components/fx/TrainLoader';
 
 export default function TripList() {
   const [trips, setTrips] = useState<Trip[]>([]);
@@ -24,6 +26,8 @@ export default function TripList() {
   const updateSort = (val: 'desc' | 'asc') => { setSortOrder(val); localStorage.setItem('tripListSort', val); };
   const fileRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
+  const { toast, confirmDlg } = useToast();
+  const [tearingId, setTearingId] = useState<number | null>(null);
 
   const updateFilter = (val: 'all' | 'train' | 'flight') => { setFilter(val); localStorage.setItem('tripListFilter', val); };
 
@@ -31,9 +35,17 @@ export default function TripList() {
   useEffect(() => { loadTrips(); }, []);
 
   const handleDelete = async (id: number) => {
-    if (!confirm('\u786e\u8981\u5220\u53bb\u6b64\u884c\u65c5\uff1f')) return;
-    try { await api.deleteTrip(id); setTrips(prev => prev.filter(t => t.id !== id)); }
-    catch { alert('\u5220\u53bb\u8d25'); }
+    const ok = await confirmDlg({ title: '\u6495\u53bb\u6b64\u884c\uff1f', message: '\u884c\u7a0b\u8bb0\u5f55\u5c06\u6c38\u4e45\u79fb\u9664\uff0c\u4e0d\u53ef\u590d\u5f97\u3002', confirmText: '\u6495\u53bb', danger: true });
+    if (!ok) return;
+    setTearingId(id);
+    setTimeout(async () => {
+      try {
+        await api.deleteTrip(id);
+        setTrips(prev => prev.filter(t => t.id !== id));
+        toast('\u5df2\u6495\u53bb\u4e00\u884c\u884c\u7a0b');
+      } catch { toast('\u5220\u9664\u5931\u8d25', 'err'); }
+      finally { setTearingId(null); }
+    }, 520);
   };
 
   const handleCSVImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -43,15 +55,15 @@ export default function TripList() {
     try {
       const text = await file.text();
       const result: any = await api.importTripsCSV(text);
-      alert('\u5bfc\u5165\u6bd5: ' + result.imported + ' \u6761\u6210\u529f' + (result.errors.length > 0 ? ', ' + result.errors.length + ' \u6761\u5931\u8d25' : ''));
+      toast('\u5bfc\u5165\u6bd5: ' + result.imported + ' \u6761\u6210\u529f' + (result.errors.length > 0 ? ', ' + result.errors.length + ' \u6761\u5931\u8d25' : ''));
       loadTrips();
-    } catch (err: any) { alert('\u5bfc\u5165\u8d25: ' + err.message); }
+    } catch (err: any) { toast('\u5bfc\u5165\u8d25: ' + err.message, 'err'); }
     finally { setImporting(false); if (fileRef.current) fileRef.current.value = ''; }
   };
 
   const handleSeed = async () => {
-    try { const result: any = await api.seedData(); setSeedMsg('\u5df2\u8f7d\u5165 ' + result.stations + ' \u4e2a\u7ad9\u70b9, ' + result.operators + ' \u4e2a\u8fd0\u8425\u5546'); setTimeout(() => setSeedMsg(''), 4000); }
-    catch { setSeedMsg('\u8f7d\u5165\u8d25'); }
+    try { const result: any = await api.seedData(); toast('\u5df2\u8f7d\u5165 ' + result.stations + ' \u4e2a\u7ad9\u70b9, ' + result.operators + ' \u4e2a\u8fd0\u8425\u5546'); }
+    catch { toast('\u8f7d\u5165\u8d25', 'err'); }
   };
 
   const filtered = trips
@@ -123,7 +135,7 @@ export default function TripList() {
         <div className="relative flex-1 max-w-xs">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-content-tertiary" />
           <input type="text" placeholder="\u641c\u7d22\u8f66\u6b21\u3001\u8fd0\u8425\u5546\u3001\u7ad9\u70b9..." value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)} className="input-field pl-9" />
+            onChange={e => setSearchQuery(e.target.value)} className="input-field pl-9" id="trip-search" />
         </div>
         <button onClick={() => updateSort(sortOrder === 'desc' ? 'asc' : 'desc')}
           className="px-3 py-1.5 rounded-md text-sm font-medium transition-all text-content-secondary hover:text-content flex items-center gap-1"
@@ -135,6 +147,7 @@ export default function TripList() {
 
       {loading ? (
         <div className="space-y-3">
+          <TrainLoader className="max-w-xs mb-2" />
           {[...Array(5)].map((_, i) => (
             <div key={i} className="card p-4 animate-pulse"><div className="h-4 w-24 bg-line rounded mb-2" /><div className="h-3 w-48 bg-line rounded" /></div>
           ))}
@@ -158,7 +171,7 @@ export default function TripList() {
                 <div className="space-y-2 md:ml-14">
                   {monthTrips.map((trip, idx) => (
                     <Reveal key={trip.id} delay={idx * 50}>
-                      <div className="card p-4 hover:shadow-md transition-shadow group">
+                      <div className={'card p-4 group transition-all hover:shadow-md hover:-translate-y-0.5' + (tearingId === trip.id ? ' tearing' : '')}>
                         <div className="flex items-start gap-4">
                           <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
                             trip.type === 'train' ? 'bg-brand/10 text-brand' : 'bg-brand/10 text-brand'

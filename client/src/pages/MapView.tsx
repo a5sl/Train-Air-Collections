@@ -1,10 +1,11 @@
-import React, { useEffect, useState, useRef, useCallback } from 'react';
+import React, { useEffect, useState, useRef, useCallback, useReducer } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import { Train, Plane, Layers, ChevronDown, Filter, X } from 'lucide-react';
 import { api } from '../lib/api';
 import { wgs84ToGcj02 } from '../lib/coords';
 import type { Trip } from '../../../shared/types';
+import { onAppearanceChange } from '../lib/theme';
 
 import iconUrl from 'leaflet/dist/images/marker-icon.png';
 import iconRetinaUrl from 'leaflet/dist/images/marker-icon-2x.png';
@@ -13,13 +14,18 @@ import shadowUrl from 'leaflet/dist/images/marker-shadow.png';
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({ iconUrl, iconRetinaUrl, shadowUrl });
 
-const C = {
-  trainLine: '#C88A3D',
-  flightLine: '#C1443B',
-  trainStation: '#C9A23B',
-  flightStation: '#9B3058',
-  bg: '#fdfaf5',
-};
+function readPalette() {
+  const cv = (n: string) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  const rgb = (n: string, fallback: string) => { const v = cv(n); return v ? 'rgb(' + v + ')' : fallback; };
+  return {
+    trainLine: rgb('--c-train-line', '#C88A3D'),
+    flightLine: rgb('--c-flight-line', '#C1443B'),
+    trainStation: rgb('--c-train-station', '#C9A23B'),
+    flightStation: rgb('--c-flight-station', '#9B3058'),
+    bg: rgb('--c-map-bg', '#fdfaf5'),
+  };
+}
+let C = readPalette();
 
 const ZOOM_THRESHOLD = 9;
 
@@ -151,6 +157,8 @@ function MapClickClear({ onClear, markerClickRef }: { onClear: () => void; marke
 }
 
 export default function MapView() {
+  const [, refreshPalette] = useReducer((x: number) => x + 1, 0);
+  useEffect(() => onAppearanceChange(() => { C = readPalette(); refreshPalette(); }), []);
   const [trips, setTrips] = useState<Trip[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterMode, setFilterMode] = useState<'all' | 'train' | 'flight'>('all');

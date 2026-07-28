@@ -26,6 +26,10 @@ export default {
           glow: 'rgb(var(--c-brand-glow) / <alpha-value>)',
           tint: 'rgb(var(--c-brand-tint) / <alpha-value>)',
         },
+        accent: {
+          DEFAULT: 'rgb(var(--c-accent) / <alpha-value>)',
+          tint: 'rgb(var(--c-accent-tint) / <alpha-value>)',
+        },
         screentext: 'rgb(var(--c-screen-text) / <alpha-value>)',
         screendata: 'rgb(var(--c-screen-data) / <alpha-value>)',
         rail: {
@@ -55,17 +59,9 @@ export default {
         },
       },
       fontFamily: {
-        sans: [
-          "-apple-system", "BlinkMacSystemFont", '"Segoe UI"', "Roboto",
-          '"Noto Sans SC"', '"Microsoft YaHei"', "sans-serif",
-        ],
-        display: [
-          '"Noto Serif SC"', '"Songti SC"', '"SimSun"',
-          '"Noto Serif CJK SC"', "serif",
-        ],
-        mono: [
-          '"IBM Plex Mono"', '"Consolas"', '"Courier New"', "monospace",
-        ],
+        sans: ["var(--font-body)", "system-ui", "sans-serif"],
+        display: ["var(--font-display)", "serif"],
+        mono: ["var(--font-mono)", "monospace"],
       },
       keyframes: {
         'fade-up': {

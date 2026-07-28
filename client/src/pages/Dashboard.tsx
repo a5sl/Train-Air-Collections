@@ -2,68 +2,23 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Train, Plane, Clock, MapPin, BarChart3, Plus,
-  TrendingUp, Star, Navigation, Calendar, DollarSign,
+  Star, Navigation, Calendar, DollarSign,
 } from 'lucide-react';
 import { api } from '../lib/api';
 import type { Trip } from '../../../shared/types';
 import Reveal from '../components/Reveal';
-import CountUp from '../components/CountUp';
 import TelemetryPanel from '../components/TelemetryPanel';
 import Ticket from '../components/Ticket';
 import Seal from '../components/Seal';
+import Tilt from '../components/fx/Tilt';
+import Magnetic from '../components/fx/Magnetic';
+import TrainLoader from '../components/fx/TrainLoader';
 
 function formatDuration(minutes: number | null): string {
   if (minutes === null || minutes === 0) return minutes === 0 ? '0m' : '-';
   const h = Math.floor(minutes / 60);
   const m = minutes % 60;
   return h > 0 ? h + 'h ' + m + 'm' : m + 'm';
-}
-
-function getMonthLabel(ym: string): string {
-  const parts = ym.split('-');
-  return parseInt(parts[1]) + '\u6708';
-}
-
-type MonthlyRow = { key: string; label: string; total: number };
-
-function groupByMonth(trips: Trip[]): MonthlyRow[] {
-  const map = new Map<string, number>();
-  for (const t of trips) {
-    const key = t.departureDate.slice(0, 7);
-    map.set(key, (map.get(key) || 0) + 1);
-  }
-  return Array.from(map.entries())
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([key, val]) => ({ key, label: getMonthLabel(key), total: val }));
-}
-
-function MonthlyChart({ data }: { data: MonthlyRow[] }) {
-  if (data.length === 0) return null;
-  const barW = 32;
-  const gap = 16;
-  const maxVal = Math.max(...data.map((d) => d.total), 1);
-  const chartH = 100;
-  const totalW = data.length * (barW + gap) - gap;
-  const scale = chartH / maxVal;
-  return (
-    <svg width={totalW} height={chartH + 30} className="overflow-visible flex-shrink-0">
-      {data.map((d, i) => {
-        const x = i * (barW + gap);
-        const h = d.total * scale;
-        return (
-          <g key={d.key}>
-            <rect x={x} y={chartH - h} width={barW} height={h} rx={4} fill="rgb(var(--c-brand))" opacity={0.85}>
-              <title>{d.label}: {d.total} \u6b21</title>
-            </rect>
-            <text x={x + barW / 2} y={chartH + 18} textAnchor="middle" fill="rgb(var(--c-content-secondary))" fontSize="11" fontFamily="inherit">
-              {d.label}
-            </text>
-          </g>
-        );
-      })}
-      <line x1={0} y1={chartH} x2={totalW} y2={chartH} stroke="rgb(var(--c-line))" strokeWidth={1} />
-    </svg>
-  );
 }
 
 function HighlightRow({ label, value }: { label: string; value: string }) {
@@ -102,7 +57,6 @@ export default function Dashboard() {
     });
     const thisYear = new Date().getFullYear().toString();
     const thisYearTrips = trips.filter((t) => t.departureDate.startsWith(thisYear));
-    const monthly = groupByMonth(trips);
     const routeMap = new Map<string, { dep: string; arr: string; count: number }>();
     trips.forEach((t) => {
       const key = (t.departureStation?.name ?? '?') + ' \u2192 ' + (t.arrivalStation?.name ?? '?');
@@ -120,7 +74,7 @@ export default function Dashboard() {
     const cityMap = new Map<string, number>();
     trips.forEach((t) => { const c = t.arrivalStation?.city || t.arrivalStation?.name; if (c) cityMap.set(c, (cityMap.get(c) || 0) + 1); });
     const topCities = Array.from(cityMap.entries()).sort((a, b) => b[1] - a[1]).slice(0, 5);
-    return { trainTrips, flightTrips, totalDistance, totalDuration, costByCurrency, cities: cities.size, thisYearTrips: thisYearTrips.length, monthly, topRoutes, topOperators, longest, avgDistance, topCities };
+    return { trainTrips, flightTrips, totalDistance, totalDuration, costByCurrency, cities: cities.size, thisYearTrips: thisYearTrips.length, topRoutes, topOperators, longest, avgDistance, topCities };
   }, [trips]);
 
   const latestTrip = trips.length > 0 ? trips[0] : null;
@@ -128,6 +82,7 @@ export default function Dashboard() {
   if (loading) {
     return (
       <div className="space-y-6">
+        <TrainLoader className="max-w-xs" />
         <div className="h-7 w-20 bg-line rounded animate-pulse" />
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {Array.from({ length: 8 }).map((_, i) => (
@@ -141,12 +96,12 @@ export default function Dashboard() {
   if (trips.length === 0) {
     return (
       <div className="space-y-6">
-        <div><h2 className="text-2xl font-display font-bold text-content">\u884c\u65c5\u5f55</h2><p className="text-sm text-content-secondary mt-1">\u94c1\u8f68\u7eb5\u6a2a\uff0c\u4e91\u8def\u4e07\u91cc</p></div>
+        <div><h2 className="text-2xl font-display font-bold text-content">行旅录</h2><p className="text-sm text-content-secondary mt-1">铁轨纵横，云路万里</p></div>
         <div className="card p-16 text-center">
           <div className="flex justify-center mb-4"><Train className="w-12 h-12 text-content-tertiary" /></div>
-          <h3 className="text-lg font-medium text-content mb-2">\u5c1a\u65e0\u884c\u65c5\u8bb0\u8f7d</h3>
-          <p className="text-sm text-content-secondary mb-4">\u5f55\u4e0b\u7b2c\u4e00\u6bb5\u65c5\u9014\u5427</p>
-          <button onClick={() => navigate('/add')} className="btn-primary"><Plus className="w-4 h-4" />\u542f\u7a0b\u5f55\u4e4b</button>
+          <h3 className="text-lg font-medium text-content mb-2">尚无行旅记录</h3>
+          <p className="text-sm text-content-secondary mb-4">录下第一段旅途吧</p>
+          <Magnetic><button onClick={() => navigate('/add')} className="btn-primary"><Plus className="w-4 h-4" />启程录之</button></Magnetic>
         </div>
       </div>
     );
@@ -156,18 +111,18 @@ export default function Dashboard() {
     <div className="space-y-6">
       <Reveal>
         <div className="flex items-center justify-between">
-          <div><h2 className="text-2xl font-display font-bold text-content tracking-tight">\u884c\u65c5\u5f55</h2><p className="text-sm text-content-secondary mt-1">\u94c1\u8f68\u7eb5\u6a2a\uff0c\u4e91\u8def\u4e07\u91cc</p></div>
-          <button onClick={() => navigate('/add')} className="btn-primary"><Plus className="w-4 h-4" />\u5f55\u65b0\u7a0b</button>
+          <div><h2 className="text-2xl font-display font-bold text-content tracking-tight">行旅录</h2><p className="text-sm text-content-secondary mt-1">铁轨纵横，云路万里</p></div>
+          <Magnetic><button onClick={() => navigate('/add')} className="btn-primary"><Plus className="w-4 h-4" />录新程</button></Magnetic>
         </div>
       </Reveal>
 
       {latestTrip && (
         <Reveal delay={100}>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            <div className="lg:col-span-2"><Ticket trip={latestTrip} size="hero" onClick={() => navigate('/edit/' + latestTrip.id)} /></div>
+            <div className="lg:col-span-2"><Tilt max={3.5}><Ticket trip={latestTrip} size="hero" onClick={() => navigate('/edit/' + latestTrip.id)} /></Tilt></div>
             <div className="flex flex-col gap-3">
-              <TelemetryPanel label="\u884c\u65c5\u603b\u8ba1" labelEn="TOTAL TRIPS" value={trips.length} icon={BarChart3} />
-              <TelemetryPanel label="\u4e07\u91cc\u5f81\u9014" labelEn="TOTAL DISTANCE" value={stats.totalDistance} unit="km" icon={Navigation} format={(n) => n.toLocaleString()} />
+              <TelemetryPanel label="行旅总计" labelEn="TOTAL TRIPS" value={trips.length} icon={BarChart3} />
+              <TelemetryPanel label="万里征途" labelEn="TOTAL DISTANCE" value={stats.totalDistance} unit="km" icon={Navigation} format={(n) => n.toLocaleString()} />
             </div>
           </div>
         </Reveal>
@@ -175,51 +130,42 @@ export default function Dashboard() {
 
       <Reveal delay={200}>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <TelemetryPanel label="\u94c1\u8f68\u4e4b\u884c" labelEn="RAIL" value={stats.trainTrips.length} icon={Train} />
-          <TelemetryPanel label="\u4e91\u4e2d\u4e4b\u65c5" labelEn="AIR" value={stats.flightTrips.length} icon={Plane} />
-          <TelemetryPanel label="\u8db3\u5c65\u4e4b\u57ce" labelEn="CITIES" value={stats.cities} icon={MapPin} />
-          <TelemetryPanel label="\u4eca\u5c81" labelEn="THIS YEAR" value={stats.thisYearTrips} unit="\u6b21" icon={Calendar} />
+          <TelemetryPanel label="铁轨之行" labelEn="RAIL" value={stats.trainTrips.length} icon={Train} />
+          <TelemetryPanel label="云中之旅" labelEn="AIR" value={stats.flightTrips.length} icon={Plane} />
+          <TelemetryPanel label="足履之城" labelEn="CITIES" value={stats.cities} icon={MapPin} />
+          <TelemetryPanel label="今岁" labelEn="THIS YEAR" value={stats.thisYearTrips} unit="次" icon={Calendar} />
         </div>
       </Reveal>
 
       <Reveal delay={250}>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <TelemetryPanel label="\u5149\u9634\u6d41\u8f6c" labelEn="DURATION" value={stats.totalDuration} icon={Clock} format={(n) => formatDuration(n)} />
+          <TelemetryPanel label="光阴流转" labelEn="DURATION" value={stats.totalDuration} icon={Clock} format={(n) => formatDuration(n)} />
           <div className="screen-panel">
             <div className="absolute left-3 top-4 bottom-4 flex flex-col justify-between">{Array.from({ length: 5 }).map((_, i) => (<div key={i} className="w-2 h-px bg-brand/40" />))}</div>
             <div className="pl-5">
-              <div className="flex items-center gap-2 mb-1"><DollarSign className="w-3.5 h-3.5 text-screendata/60" /><span className="text-xs text-screentext/60 font-medium">\u76d8\u7f20</span><span className="text-[10px] text-screentext/30 font-mono uppercase tracking-wider">COST</span></div>
+              <div className="flex items-center gap-2 mb-1"><DollarSign className="w-3.5 h-3.5 text-screendata/60" /><span className="text-xs text-screentext/60 font-medium">盘缠</span><span className="text-[10px] text-screentext/30 font-mono uppercase tracking-wider">COST</span></div>
               {stats.costByCurrency && stats.costByCurrency.size > 0 ? (
                 <div className="flex flex-wrap gap-x-3 gap-y-0">{[...stats.costByCurrency.entries()].map(([cur, amt]) => (<span key={cur} className="text-lg font-bold font-mono text-screendata tracking-tight whitespace-nowrap">{cur} {amt.toLocaleString()}</span>))}</div>
               ) : (<p className="text-lg font-bold font-mono text-screendata tracking-tight">-</p>)}
             </div>
           </div>
-          <TelemetryPanel label="\u5747\u7a0b" labelEn="AVG DIST" value={stats.avgDistance} unit="km" icon={Navigation} format={(n) => n.toLocaleString()} />
+          <TelemetryPanel label="均程" labelEn="AVG DIST" value={stats.avgDistance} unit="km" icon={Navigation} format={(n) => n.toLocaleString()} />
         </div>
       </Reveal>
 
-      {stats.monthly.length >= 2 && (
-        <Reveal delay={300}>
-          <div className="card-alt p-5">
-            <h3 className="text-xs font-semibold text-content-secondary uppercase tracking-wider mb-4 flex items-center gap-2"><TrendingUp className="w-4 h-4 text-brand" />\u6708\u6b21\u884c\u8ff9</h3>
-            <div className="overflow-x-auto pb-2 min-w-0"><MonthlyChart data={stats.monthly} /></div>
-          </div>
-        </Reveal>
-      )}
-
-      <Reveal delay={350}>
+      <Reveal delay={300}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="card p-5">
-            <h3 className="text-xs font-semibold text-content-secondary uppercase tracking-wider mb-4 flex items-center gap-2"><Star className="w-4 h-4 text-brand" />\u884c\u65c5\u64f7\u82f1</h3>
+          <Tilt max={2.5} className="card p-5">
+            <h3 className="text-xs font-semibold text-content-secondary uppercase tracking-wider mb-4 flex items-center gap-2"><Star className="w-4 h-4 text-brand" />行旅擷英</h3>
             <div className="space-y-0">
-              {stats.topOperators.length > 0 && <HighlightRow label="\u6700\u5e38\u4e58" value={stats.topOperators[0][0] + ' (' + stats.topOperators[0][1] + '\u6b21)'} />}
-              {stats.topRoutes.length > 0 && <HighlightRow label="\u5e38\u5c65\u4e4b\u9014" value={stats.topRoutes[0].dep + ' \u2192 ' + stats.topRoutes[0].arr + ' (' + stats.topRoutes[0].count + '\u6b21)'} />}
-              {stats.longest && <HighlightRow label="\u81f3\u8fdc\u4e4b\u884c" value={(stats.longest.departureStation?.name ?? '?') + ' \u2192 ' + (stats.longest.arrivalStation?.name ?? '?') + ' ' + (stats.longest.distanceKm ?? 0).toLocaleString() + 'km'} />}
-              <HighlightRow label="\u5747\u7a0b" value={stats.avgDistance.toLocaleString() + ' km / \u6b21'} />
+              {stats.topOperators.length > 0 && <HighlightRow label="最常乘" value={stats.topOperators[0][0] + ' (' + stats.topOperators[0][1] + '次)'} />}
+              {stats.topRoutes.length > 0 && <HighlightRow label="常履之途" value={stats.topRoutes[0].dep + ' \u2192 ' + stats.topRoutes[0].arr + ' (' + stats.topRoutes[0].count + '次)'} />}
+              {stats.longest && <HighlightRow label="至远之行" value={(stats.longest.departureStation?.name ?? '?') + ' \u2192 ' + (stats.longest.arrivalStation?.name ?? '?') + ' ' + (stats.longest.distanceKm ?? 0).toLocaleString() + 'km'} />}
+              <HighlightRow label="均程" value={stats.avgDistance.toLocaleString() + ' km / 次'} />
             </div>
-          </div>
-          <div className="card p-5">
-            <h3 className="text-xs font-semibold text-content-secondary uppercase tracking-wider mb-4 flex items-center gap-2"><MapPin className="w-4 h-4 text-brand" />\u5e38\u81f3\u4e4b\u57ce</h3>
+          </Tilt>
+          <Tilt max={2.5} className="card p-5">
+            <h3 className="text-xs font-semibold text-content-secondary uppercase tracking-wider mb-4 flex items-center gap-2"><MapPin className="w-4 h-4 text-brand" />常至之城</h3>
             <div className="flex flex-wrap gap-3">
               {stats.topCities.map(([city, count], i) => (
                 <div key={city} className="flex flex-col items-center gap-1">
@@ -228,16 +174,16 @@ export default function Dashboard() {
                   <span className="font-mono text-[10px] text-content-tertiary">{count}</span>
                 </div>
               ))}
-              {stats.topCities.length === 0 && <p className="text-sm text-content-secondary">\u6682\u65e0\u8bb0\u8f7d</p>}
+              {stats.topCities.length === 0 && <p className="text-sm text-content-secondary">暂无记载</p>}
             </div>
-          </div>
+          </Tilt>
         </div>
       </Reveal>
 
       {stats.topOperators.length > 0 && (
-        <Reveal delay={400}>
+        <Reveal delay={350}>
           <div className="card p-5">
-            <h3 className="text-xs font-semibold text-content-secondary uppercase tracking-wider mb-3">\u60ef\u4e58</h3>
+            <h3 className="text-xs font-semibold text-content-secondary uppercase tracking-wider mb-3">惯乘</h3>
             <div className="flex flex-wrap gap-2">
               {stats.topOperators.map(([name, count]) => (
                 <span key={name} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm bg-brand-tint text-content">{name}<span className="text-content-secondary text-xs ml-0.5">{count}</span></span>
