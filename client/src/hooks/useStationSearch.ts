@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef } from "react";
 import { api } from "../lib/api";
-import type { Station } from "../../shared/types";
+import type { Station } from "../../../shared/types";
 
 export function useStationSearch() {
   const [results, setResults] = useState<Station[]>([]);

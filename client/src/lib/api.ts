@@ -1,4 +1,4 @@
-import type { Trip, Station, ApiResponse } from "../../shared/types";
+import type { Trip, Station, ApiResponse } from "../../../shared/types";
 
 const BASE = "/api";
 

@@ -1,46 +1,39 @@
-import React, { useEffect, useState, useRef } from "react";
-import { Train, Plane, Clock, MapPin, Trash2, ChevronRight, Search, Upload, Database, Pencil, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import { api } from "../lib/api";
-import type { Trip } from "../../shared/types";
+import React, { useEffect, useState, useRef } from 'react';
+import { Train, Plane, Clock, MapPin, Trash2, ChevronRight, Search, Upload, Database, Pencil, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { api } from '../lib/api';
+import type { Trip } from '../../../shared/types';
+import Reveal from '../components/Reveal';
+import Segmented from '../components/Segmented';
+import TrajectorySVG from '../components/TrajectorySVG';
 
 export default function TripList() {
   const [trips, setTrips] = useState<Trip[]>([]);
   const [loading, setLoading] = useState(true);
   const [importing, setImporting] = useState(false);
-  const [seedMsg, setSeedMsg] = useState("");
-  const [filter, setFilter] = useState<"all" | "train" | "flight">(() => {
-    const saved = localStorage.getItem("tripListFilter");
-    return (saved === "train" || saved === "flight") ? saved : "all";
+  const [seedMsg, setSeedMsg] = useState('');
+  const [filter, setFilter] = useState<'all' | 'train' | 'flight'>(() => {
+    const saved = localStorage.getItem('tripListFilter');
+    return (saved === 'train' || saved === 'flight') ? saved : 'all';
   });
-  const [searchQuery, setSearchQuery] = useState("");
-  const [sortOrder, setSortOrder] = useState<"desc" | "asc">(() => {
-    const saved = localStorage.getItem("tripListSort");
-    return (saved === "asc" || saved === "desc") ? saved : "desc";
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>(() => {
+    const saved = localStorage.getItem('tripListSort');
+    return (saved === 'asc' || saved === 'desc') ? saved : 'desc';
   });
-  const updateSort = (val: "desc" | "asc") => {
-    setSortOrder(val);
-    localStorage.setItem("tripListSort", val);
-  };
+  const updateSort = (val: 'desc' | 'asc') => { setSortOrder(val); localStorage.setItem('tripListSort', val); };
   const fileRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
 
-  const updateFilter = (val: "all" | "train" | "flight") => {
-    setFilter(val);
-    localStorage.setItem("tripListFilter", val);
-  };
+  const updateFilter = (val: 'all' | 'train' | 'flight') => { setFilter(val); localStorage.setItem('tripListFilter', val); };
 
-  const loadTrips = () => {
-    setLoading(true);
-    api.getTrips().then(setTrips).catch(console.error).finally(() => setLoading(false));
-  };
-
+  const loadTrips = () => { setLoading(true); api.getTrips().then(setTrips).catch(console.error).finally(() => setLoading(false)); };
   useEffect(() => { loadTrips(); }, []);
 
   const handleDelete = async (id: number) => {
-    if (!confirm("确要删去此行旅？")) return;
+    if (!confirm('\u786e\u8981\u5220\u53bb\u6b64\u884c\u65c5\uff1f')) return;
     try { await api.deleteTrip(id); setTrips(prev => prev.filter(t => t.id !== id)); }
-    catch { alert("删去败"); }
+    catch { alert('\u5220\u53bb\u8d25'); }
   };
 
   const handleCSVImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -50,48 +43,32 @@ export default function TripList() {
     try {
       const text = await file.text();
       const result: any = await api.importTripsCSV(text);
-      alert(`导入毕: ${result.imported} 条成功${result.errors.length > 0 ? `, ${result.errors.length} 条失败:\n${result.errors.slice(0, 10).join('\n')}` : ""}`);
+      alert('\u5bfc\u5165\u6bd5: ' + result.imported + ' \u6761\u6210\u529f' + (result.errors.length > 0 ? ', ' + result.errors.length + ' \u6761\u5931\u8d25' : ''));
       loadTrips();
-    } catch (err: any) {
-      alert("导入败: " + err.message);
-    } finally {
-      setImporting(false);
-      if (fileRef.current) fileRef.current.value = "";
-    }
+    } catch (err: any) { alert('\u5bfc\u5165\u8d25: ' + err.message); }
+    finally { setImporting(false); if (fileRef.current) fileRef.current.value = ''; }
   };
 
   const handleSeed = async () => {
-    try {
-      const result: any = await api.seedData();
-      setSeedMsg(`已载入 ${result.stations} 个站点, ${result.operators} 个运营商`);
-      setTimeout(() => setSeedMsg(""), 4000);
-    } catch { setSeedMsg("载入败"); }
+    try { const result: any = await api.seedData(); setSeedMsg('\u5df2\u8f7d\u5165 ' + result.stations + ' \u4e2a\u7ad9\u70b9, ' + result.operators + ' \u4e2a\u8fd0\u8425\u5546'); setTimeout(() => setSeedMsg(''), 4000); }
+    catch { setSeedMsg('\u8f7d\u5165\u8d25'); }
   };
 
   const filtered = trips
-    .filter(t => filter === "all" ? true : t.type === filter)
+    .filter(t => filter === 'all' ? true : t.type === filter)
     .filter(t => {
       if (!searchQuery) return true;
       const q = searchQuery.toLowerCase();
-      return (
-        t.trainFlightNumber.toLowerCase().includes(q) ||
-        t.operator.toLowerCase().includes(q) ||
-        t.departureStation?.name.toLowerCase().includes(q) ||
-        t.arrivalStation?.name.toLowerCase().includes(q) ||
-        t.departureStation?.city.toLowerCase().includes(q) ||
-        t.arrivalStation?.city.toLowerCase().includes(q)
-      );
+      return (t.trainFlightNumber.toLowerCase().includes(q) || t.operator.toLowerCase().includes(q) ||
+        t.departureStation?.name.toLowerCase().includes(q) || t.arrivalStation?.name.toLowerCase().includes(q) ||
+        t.departureStation?.city.toLowerCase().includes(q) || t.arrivalStation?.city.toLowerCase().includes(q));
     })
-    .sort((a, b) => {
-      const da = parseDate(a.departureDate);
-      const db = parseDate(b.departureDate);
-      return sortOrder === "desc" ? db - da : da - db;
-    });
+    .sort((a, b) => { const da = parseDate(a.departureDate); const db = parseDate(b.departureDate); return sortOrder === 'desc' ? db - da : da - db; });
 
   function parseDate(s: string): number {
     if (!s) return 0;
     const m = s.match(/(\d{4})-(\d{2})-(\d{2})/);
-    if (m) return new Date(m[1] + "-" + m[2] + "-" + m[3] + "T00:00:00Z").getTime();
+    if (m) return new Date(m[1] + '-' + m[2] + '-' + m[3] + 'T00:00:00Z').getTime();
     const ts = Date.parse(s);
     return isNaN(ts) ? 0 : ts;
   }
@@ -100,135 +77,142 @@ export default function TripList() {
     if (!mins) return null;
     const h = Math.floor(mins / 60);
     const m = mins % 60;
-    return h > 0 ? `${h}h ${m}m` : `${m}m`;
+    return h > 0 ? h + 'h ' + m + 'm' : m + 'm';
   };
+
+  // Group by month for timeline
+  const grouped = useMemo(() => {
+    const map = new Map<string, Trip[]>();
+    filtered.forEach(t => {
+      const key = t.departureDate.slice(0, 7);
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(t);
+    });
+    return Array.from(map.entries());
+  }, [filtered]);
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">行旅全录</h2>
-          <p className="text-sm text-gray-500 mt-1">{trips.length} 条记录</p>
+          <h2 className="text-2xl font-display font-bold text-content">\u884c\u65c5\u5168\u5f55</h2>
+          <p className="text-sm text-content-secondary mt-1">{trips.length} \u6761\u8bb0\u5f55</p>
         </div>
         <div className="flex items-center gap-2">
-          {seedMsg && <span className="text-xs text-terracotta-500">{seedMsg}</span>}
-          <button onClick={handleSeed} className="btn-secondary text-xs" title="初始化车站和运营商数据">
-            <Database className="w-3.5 h-3.5" />
-            初始化数据
+          {seedMsg && <span className="text-xs text-brand">{seedMsg}</span>}
+          <button onClick={handleSeed} className="btn-secondary text-xs" title="\u521d\u59cb\u5316\u8f66\u7ad9\u548c\u8fd0\u8425\u5546\u6570\u636e">
+            <Database className="w-3.5 h-3.5" />\u521d\u59cb\u5316\u6570\u636e
           </button>
           <input type="file" accept=".csv" ref={fileRef} onChange={handleCSVImport} className="hidden" />
           <button onClick={() => fileRef.current?.click()} disabled={importing} className="btn-secondary text-xs">
-            <Upload className="w-3.5 h-3.5" />
-            {importing ? "导入中..." : "导入CSV"}
+            <Upload className="w-3.5 h-3.5" />{importing ? '\u5bfc\u5165\u4e2d...' : '\u5bfc\u5165CSV'}
           </button>
         </div>
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-          <input className="input-field pl-9" placeholder="搜索车次、运营方、站点..."
-            value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
+      <div className="flex items-center gap-3 flex-wrap">
+        <Segmented
+          options={[
+            { value: 'all' as const, label: '\u5168\u90e8' },
+            { value: 'train' as const, label: '\u94c1\u8f68', icon: Train },
+            { value: 'flight' as const, label: '\u4e91\u8def', icon: Plane },
+          ]}
+          value={filter}
+          onChange={updateFilter}
+        />
+        <div className="relative flex-1 max-w-xs">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-content-tertiary" />
+          <input type="text" placeholder="\u641c\u7d22\u8f66\u6b21\u3001\u8fd0\u8425\u5546\u3001\u7ad9\u70b9..." value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)} className="input-field pl-9" />
         </div>
-        <div className="flex gap-1 bg-gray-100 rounded-lg p-1">
-          {(["all", "train", "flight"] as const).map(f => (
-            <button key={f} onClick={() => updateFilter(f)}
-              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
-                filter === f ? "bg-terracotta-100 text-terracotta-700 shadow-sm" : "text-ink-400 hover:text-ink-700"
-              }`}>
-              {f === "all" ? "全部" : f === "train" ? "铁轨" : "云路"}
-            </button>
-          ))}
-        </div>
-        <div className="flex gap-1 bg-gray-100 rounded-lg p-1">
-          <button onClick={() => updateSort(sortOrder === "desc" ? "asc" : "desc")}
-            className="px-3 py-1.5 rounded-md text-sm font-medium transition-all text-ink-400 hover:text-ink-700 flex items-center gap-1"
-            title={sortOrder === "desc" ? "当前: 最新在前" : "当前: 最早在前"}>
-            <ArrowUpDown className="w-3.5 h-3.5" />
-            时间
-            {sortOrder === "desc" ? <ArrowDown className="w-3 h-3" /> : <ArrowUp className="w-3 h-3" />}
-          </button>
-        </div>
+        <button onClick={() => updateSort(sortOrder === 'desc' ? 'asc' : 'desc')}
+          className="px-3 py-1.5 rounded-md text-sm font-medium transition-all text-content-secondary hover:text-content flex items-center gap-1"
+          title={sortOrder === 'desc' ? '\u5f53\u524d: \u6700\u65b0\u5728\u524d' : '\u5f53\u524d: \u6700\u65e9\u5728\u524d'}>
+          <ArrowUpDown className="w-3.5 h-3.5" />\u65f6\u95f4
+          {sortOrder === 'desc' ? <ArrowDown className="w-3 h-3" /> : <ArrowUp className="w-3 h-3" />}
+        </button>
       </div>
 
       {loading ? (
         <div className="space-y-3">
           {[...Array(5)].map((_, i) => (
-            <div key={i} className="card p-4 animate-pulse">
-              <div className="h-4 w-24 bg-gray-200 rounded mb-2" />
-              <div className="h-3 w-48 bg-gray-200 rounded" />
-            </div>
+            <div key={i} className="card p-4 animate-pulse"><div className="h-4 w-24 bg-line rounded mb-2" /><div className="h-3 w-48 bg-line rounded" /></div>
           ))}
         </div>
       ) : filtered.length === 0 ? (
-        <div className="card p-12 text-center">
-          <p className="text-ink-400">未见匹配之行旅</p>
-        </div>
+        <div className="card p-12 text-center"><p className="text-content-secondary">\u672a\u89c1\u5339\u914d\u4e4b\u884c\u65c5</p></div>
       ) : (
-        <div className="space-y-2">
-          {filtered.map(trip => (
-            <div key={trip.id} className="card p-4 hover:shadow-md transition-shadow group">
-              <div className="flex items-start gap-4">
-                <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                  trip.type === "train" ? "bg-terracotta-100 text-terracotta-600" : "bg-terracotta-50 text-terracotta-500"
-                }`}>
-                  {trip.type === "train" ? <Train className="w-5 h-5" /> : <Plane className="w-5 h-5" />}
+        <div className="relative">
+          {/* Timeline rail */}
+          <div className="absolute left-[19px] top-0 bottom-0 w-px bg-line hidden md:block" />
+          <div className="space-y-6">
+            {grouped.map(([month, monthTrips]) => (
+              <div key={month} className="relative">
+                {/* Month station marker */}
+                <div className="hidden md:flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-full border-2 border-brand bg-surface flex items-center justify-center flex-shrink-0 z-10">
+                    <span className="text-xs font-display font-bold text-brand">{parseInt(month.split('-')[1])}\u6708</span>
+                  </div>
+                  <span className="font-mono text-xs text-content-tertiary">{month}</span>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-semibold text-gray-900">{trip.trainFlightNumber}</span>
-                    <span className="text-xs px-1.5 py-0.5 rounded bg-gray-100 text-gray-500">
-                      {trip.type === "train" ? "铁轨" : "云路"}
-                    </span>
-                    <span className="text-sm text-ink-400">{trip.operator}</span>
-                  </div>
-                  <div className="mt-1.5 flex items-center gap-2 text-sm text-gray-600 flex-wrap">
-                    <span className="font-medium">{trip.departureStation?.name || "?"}</span>
-                    <ChevronRight className="w-3.5 h-3.5 text-gray-400" />
-                    <span className="font-medium">{trip.arrivalStation?.name || "?"}</span>
-                  </div>
-                  <div className="mt-2 flex items-center gap-3 text-xs text-gray-400 flex-wrap">
-                    <span className="flex items-center gap-1">
-                      <Clock className="w-3 h-3" />
-                      {trip.departureDate} {trip.departureTime} - {trip.arrivalTime}
-                    </span>
-                    {trip.durationMinutes && <span>{formatDuration(trip.durationMinutes)}</span>}
-                    {trip.distanceKm && (
-                      <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{trip.distanceKm} km</span>
-                    )}
-                  </div>
-                  {(trip.trainName || trip.vehicleType || trip.seatClass) && (
-                    <div className="mt-1.5 flex items-center gap-2 text-xs text-gray-400 flex-wrap">
-                      {trip.trainName && <span>{trip.trainName}</span>}
-                      {trip.vehicleType && <span>{trip.vehicleType}</span>}
-                      {trip.vehicleNumber && <span>#{trip.vehicleNumber}</span>}
-                      {trip.carriageNumber && <span>{trip.carriageNumber}车厢</span>}
-                      {trip.seatClass && <span>{trip.seatClass}</span>}
-                      {trip.seatNumber && <span>{trip.seatNumber}座</span>}
-                    </div>
-                  )}
-                </div>
-                <div className="flex flex-col items-end gap-2 flex-shrink-0">
-                  {trip.cost && (
-                    <span className="text-sm font-semibold text-ink-800">
-                      {trip.currency || ""} {trip.cost.toLocaleString()}
-                    </span>
-                  )}
-                  <button onClick={() => navigate(`/edit/${trip.id}`)}
-                    className="opacity-0 group-hover:opacity-100 transition-opacity text-ink-300 hover:text-terracotta-500"
-                    title="编辑行程">
-                    <Pencil className="w-4 h-4" />
-                  </button>
-                  <button onClick={() => handleDelete(trip.id)}
-                    className="opacity-0 group-hover:opacity-100 transition-opacity text-ink-300 hover:text-terracotta-500">
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                <div className="space-y-2 md:ml-14">
+                  {monthTrips.map((trip, idx) => (
+                    <Reveal key={trip.id} delay={idx * 50}>
+                      <div className="card p-4 hover:shadow-md transition-shadow group">
+                        <div className="flex items-start gap-4">
+                          <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                            trip.type === 'train' ? 'bg-brand/10 text-brand' : 'bg-brand/10 text-brand'
+                          }`}>
+                            {trip.type === 'train' ? <Train className="w-5 h-5" /> : <Plane className="w-5 h-5" />}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-mono font-semibold text-content">{trip.trainFlightNumber}</span>
+                              <span className="text-xs px-1.5 py-0.5 rounded bg-brand-tint text-brand">
+                                {trip.type === 'train' ? '\u94c1\u8f68' : '\u4e91\u8def'}
+                              </span>
+                              <span className="text-sm text-content-secondary">{trip.operator}</span>
+                            </div>
+                            <div className="mt-1.5 flex items-center gap-2 text-sm text-content flex-wrap">
+                              <span className="font-medium">{trip.departureStation?.name || '?'}</span>
+                              <ChevronRight className="w-3.5 h-3.5 text-content-tertiary" />
+                              <span className="font-medium">{trip.arrivalStation?.name || '?'}</span>
+                            </div>
+                            <div className="mt-2 flex items-center gap-3 text-xs text-content-secondary flex-wrap">
+                              <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{trip.departureDate} {trip.departureTime} - {trip.arrivalTime}</span>
+                              {trip.durationMinutes && <span>{formatDuration(trip.durationMinutes)}</span>}
+                              {trip.distanceKm && <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{trip.distanceKm} km</span>}
+                            </div>
+                            {(trip.trainName || trip.vehicleType || trip.seatClass) && (
+                              <div className="mt-1.5 flex items-center gap-2 text-xs text-content-secondary flex-wrap">
+                                {trip.trainName && <span>{trip.trainName}</span>}
+                                {trip.vehicleType && <span>{trip.vehicleType}</span>}
+                                {trip.vehicleNumber && <span>#{trip.vehicleNumber}</span>}
+                                {trip.carriageNumber && <span>{trip.carriageNumber}\u8f66\u53a2</span>}
+                                {trip.seatClass && <span>{trip.seatClass}</span>}
+                                {trip.seatNumber && <span>{trip.seatNumber}\u5ea7</span>}
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex flex-col items-end gap-2 flex-shrink-0">
+                            {trip.cost && <span className="font-mono text-sm font-semibold text-content">{trip.currency || ''} {trip.cost.toLocaleString()}</span>}
+                            <button onClick={() => navigate('/edit/' + trip.id)} className="opacity-0 group-hover:opacity-100 transition-opacity text-content-tertiary hover:text-brand" title="\u7f16\u8f91\u884c\u7a0b"><Pencil className="w-4 h-4" /></button>
+                            <button onClick={() => handleDelete(trip.id)} className="opacity-0 group-hover:opacity-100 transition-opacity text-content-tertiary hover:text-brand"><Trash2 className="w-4 h-4" /></button>
+                          </div>
+                        </div>
+                      </div>
+                    </Reveal>
+                  ))}
                 </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       )}
     </div>
   );
+}
+
+function useMemo<T>(fn: () => T, deps: any[]): T {
+  return React.useMemo(fn, deps);
 }

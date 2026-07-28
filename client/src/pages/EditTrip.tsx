@@ -5,7 +5,7 @@ import { api } from "../lib/api";
 import { useStationSearch } from "../hooks/useStationSearch";
 import { DateField } from "../lib/dateInput";
 import OperatorPicker from "../components/OperatorPicker";
-import type { Station } from "../../shared/types";
+import type { Station } from "../../../shared/types";
 
 const TIMEZONES = [
   "Asia/Shanghai", "Asia/Hong_Kong", "Asia/Tokyo", "Asia/Seoul",
@@ -120,19 +120,19 @@ function StationPicker({
     <div ref={ref} className="relative">
       <label className="label-text">{label}</label>
       {value ? (
-        <div className="flex items-center gap-2 p-2.5 bg-gray-50 rounded-lg border border-gray-200">
+        <div className="flex items-center gap-2 p-2.5 bg-surface rounded-lg border border-gray-200">
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-gray-900 truncate">{value.name}</p>
-            <p className="text-xs text-gray-500">{value.city}</p>
+            <p className="text-sm font-medium text-content truncate">{value.name}</p>
+            <p className="text-xs text-content-secondary">{value.city}</p>
           </div>
-          <button onClick={() => { onChange(null); setQuery(""); }} className="text-gray-400 hover:text-gray-600">
+          <button onClick={() => { onChange(null); setQuery(""); }} className="text-content-tertiary hover:text-content-secondary">
             <X className="w-4 h-4" />
           </button>
         </div>
       ) : (
         <>
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-content-tertiary" />
             <input
               className="input-field pl-9"
               placeholder={placeholder}
@@ -143,10 +143,10 @@ function StationPicker({
           </div>
           {open && (
             <div className="absolute z-50 mt-1 w-full bg-white rounded-lg border border-gray-200 shadow-lg max-h-60 overflow-y-auto">
-              {loading && <div className="px-3 py-2 text-sm text-gray-400">搜索中...</div>}
+              {loading && <div className="px-3 py-2 text-sm text-content-tertiary">搜索中...</div>}
               {!loading && results.length === 0 && query && (
                 <div className="px-3 py-2">
-                  <p className="text-sm text-gray-500 mb-2">未找到匹配站点</p>
+                  <p className="text-sm text-content-secondary mb-2">未找到匹配站点</p>
                   {!isCreating ? (
                     <button
                       onClick={() => setIsCreating(true)}
@@ -155,7 +155,7 @@ function StationPicker({
                       <Plus className="w-3.5 h-3.5" /> 添加新站点
                     </button>
                   ) : (
-                    <div className="space-y-2 p-2 bg-gray-50 rounded-lg">
+                    <div className="space-y-2 p-2 bg-surface rounded-lg">
                       <input className="input-field" placeholder="站点名称 *" value={newStation.name}
                         onChange={e => setNewStation(p => ({...p, name: e.target.value}))} />
                       <input className="input-field" placeholder="代码 (IATA/站码)" value={newStation.code}
@@ -186,9 +186,9 @@ function StationPicker({
               )}
               {results.map((s) => (
                 <div key={s.id} onClick={() => selectStation(s)} className="station-option">
-                  <span className="font-medium text-gray-900">{s.name}</span>
-                  {s.code && <span className="text-gray-400 ml-1.5">({s.code})</span>}
-                  <span className="text-gray-400 ml-2 text-xs">{s.city}</span>
+                  <span className="font-medium text-content">{s.name}</span>
+                  {s.code && <span className="text-content-tertiary ml-1.5">({s.code})</span>}
+                  <span className="text-content-tertiary ml-2 text-xs">{s.city}</span>
                 </div>
               ))}
             </div>
@@ -381,8 +381,8 @@ export default function EditTrip() {
   if (loading) {
     return (
       <div className="max-w-2xl mx-auto flex items-center justify-center py-20">
-        <Loader2 className="w-6 h-6 text-terracotta-500 animate-spin" />
-        <span className="ml-2 text-sm text-ink-400">加载行程中...</span>
+        <Loader2 className="w-6 h-6 text-brand animate-spin" />
+        <span className="ml-2 text-sm text-content-secondary">加载行程中...</span>
       </div>
     );
   }
@@ -390,7 +390,7 @@ export default function EditTrip() {
   if (!form) {
     return (
       <div className="max-w-2xl mx-auto text-center py-20">
-        <p className="text-ink-400">行程未找到</p>
+        <p className="text-content-secondary">行程未找到</p>
       </div>
     );
   }
@@ -398,8 +398,8 @@ export default function EditTrip() {
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <div>
-        <h2 className="text-2xl font-bold text-gray-900">修行程</h2>
-        <p className="text-sm text-gray-500 mt-1">修改已记录的铁轨或云路之旅</p>
+        <h2 className="text-2xl font-display font-bold text-content">修行程</h2>
+        <p className="text-sm text-content-secondary mt-1">修改已记录的铁轨或云路之旅</p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-5">
@@ -415,9 +415,9 @@ export default function EditTrip() {
                 className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg border-2 text-sm font-medium transition-all ${
                   form.type === t
                     ? t === "train"
-                      ? "border-terracotta-500 bg-terracotta-100 text-terracotta-700"
-                      : "border-terracotta-400 bg-terracotta-50 text-terracotta-600"
-                    : "border-ink-200 bg-parchment-50 text-ink-500 hover:border-terracotta-300"
+                      ? "border-brand bg-brand-tint text-brand-deep"
+                      : "border-brand bg-brand-tint text-brand"
+                    : "border-line bg-surface text-content-secondary hover:border-brand/30"
                 }`}
               >
                 {t === "train" ? <Train className="w-4 h-4" /> : <Plane className="w-4 h-4" />}
@@ -429,7 +429,7 @@ export default function EditTrip() {
 
         {/* Required fields */}
         <div className="card p-5 space-y-4">
-          <h3 className="text-xs font-semibold text-ink-400 uppercase tracking-wider">必填</h3>
+          <h3 className="text-xs font-semibold text-content-secondary uppercase tracking-wider">必填</h3>
 
           {/* Departure row */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -445,7 +445,7 @@ export default function EditTrip() {
             </div>
             <div>
               <label className="label-text">出发时区</label>
-              <div className="input-field bg-ink-50 text-ink-500 flex items-center">
+              <div className="input-field bg-surface-card-alt text-content-secondary flex items-center">
                 {form.departureStation?.timezone || "— 选择站点后自动填入"}
               </div>
             </div>
@@ -456,7 +456,7 @@ export default function EditTrip() {
               <label className="label-text">到达日期</label>
               <DateField value={form.arrivalDate}
                 onChange={v => update({ arrivalDate: v })} />
-              <p className="text-xs text-ink-400 mt-1">默认与出发日期相同，过夜旅途可修改</p>
+              <p className="text-xs text-content-secondary mt-1">默认与出发日期相同，过夜旅途可修改</p>
             </div>
             <div>
               <label className="label-text">到达时间 *</label>
@@ -465,14 +465,14 @@ export default function EditTrip() {
             </div>
             <div>
               <label className="label-text">到达时区</label>
-              <div className="input-field bg-ink-50 text-ink-500 flex items-center">
+              <div className="input-field bg-surface-card-alt text-content-secondary flex items-center">
                 {form.arrivalStation?.timezone || "— 选择站点后自动填入"}
               </div>
             </div>
           </div>
 
           {form.durationMinutes !== "" && (
-            <p className="text-xs text-gray-400">
+            <p className="text-xs text-content-tertiary">
               预计用时: {Math.floor(Number(form.durationMinutes) / 60)}小时{Number(form.durationMinutes) % 60}分钟
             </p>
           )}
@@ -517,7 +517,7 @@ export default function EditTrip() {
         <button
           type="button"
           onClick={() => setShowOptional(!showOptional)}
-          className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 transition-colors"
+          className="flex items-center gap-2 text-sm text-content-secondary hover:text-content transition-colors"
         >
           <ChevronDown className={`w-4 h-4 transition-transform ${showOptional ? "rotate-180" : ""}`} />
           详细信息 (可选)
@@ -585,7 +585,7 @@ export default function EditTrip() {
                       <option key={c} value={c}>{c}</option>
                     ))}
                   </select>
-                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-content-tertiary pointer-events-none" />
                 </div>
               </div>
             </div>

@@ -72,29 +72,29 @@ export default function OperatorPicker({ label, value, onChange, placeholder }: 
     <div ref={ref} className="relative">
       <label className="label-text">{label}</label>
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-400" />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-content-secondary" />
         <input className="input-field pl-9" placeholder={placeholder}
           value={query} onChange={handleInput} onFocus={() => { if (query) setOpen(true); }} />
         {value && (
           <button onClick={() => { setQuery(""); onChange(""); }}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-400 hover:text-ink-500">
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-content-secondary hover:text-ink-500">
             <X className="w-3.5 h-3.5" />
           </button>
         )}
       </div>
       {open && (
-        <div className="absolute z-50 mt-1 w-full bg-parchment-50 rounded-lg border border-terracotta-200 shadow-lg max-h-56 overflow-y-auto">
-          {loading && <div className="px-3 py-2 text-sm text-ink-400">索中…</div>}
+        <div className="absolute z-50 mt-1 w-full bg-surface rounded-lg border border-line shadow-lg max-h-56 overflow-y-auto">
+          {loading && <div className="px-3 py-2 text-sm text-content-secondary">索中…</div>}
           {!loading && results.length === 0 && query && (
             <div className="px-3 py-2">
-              <p className="text-sm text-ink-400 mb-2">未得</p>
+              <p className="text-sm text-content-secondary mb-2">未得</p>
               {!showAdd ? (
                 <button onClick={() => setShowAdd(true)}
                   className="text-sm text-terracotta-500 font-medium hover:text-terracotta-600 flex items-center gap-1">
                   <Plus className="w-3.5 h-3.5" /> 添运营方
                 </button>
               ) : (
-                <div className="space-y-2 p-2 bg-parchment-100 rounded-lg">
+                <div className="space-y-2 p-2 bg-surface-card-alt rounded-lg">
                   <input className="input-field" placeholder="名称 *" value={newOp.name}
                     onChange={e => setNewOp(p => ({...p, name: e.target.value}))} />
                   <div className="flex gap-2">
@@ -116,8 +116,8 @@ export default function OperatorPicker({ label, value, onChange, placeholder }: 
           {results.map((o: any) => (
             <div key={o.id} onClick={() => selectOp(o.name)} className="station-option">
               <span className="font-medium text-ink-800">{o.name}</span>
-             <span className="text-ink-400 ml-2 text-xs">{o.type === "railway" ? "铁路" : o.type === "airline" ? "航空" : "其他"}</span>
-              <span className="text-ink-400 ml-2 text-xs">{o.type === "railway" ? "铁路" : o.type === "airline" ? "航空" : "其他"}</span>
+             <span className="text-content-secondary ml-2 text-xs">{o.type === "railway" ? "铁路" : o.type === "airline" ? "航空" : "其他"}</span>
+              <span className="text-content-secondary ml-2 text-xs">{o.type === "railway" ? "铁路" : o.type === "airline" ? "航空" : "其他"}</span>
             </div>
           ))}
         </div>
