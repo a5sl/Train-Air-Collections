@@ -19,7 +19,7 @@ app.use("/api/stations", stationsRouter);
 // ---- Operators ----
 app.get("/api/operators", (req, res) => {
   try {
-    const ops = getOperators(req.query.q as string | undefined);
+    const ops = getOperators(req.query.q as string | undefined, req.query.type as string | undefined);
     res.json({ success: true, data: ops });
   } catch (e: any) {
     res.status(500).json({ success: false, error: e.message });

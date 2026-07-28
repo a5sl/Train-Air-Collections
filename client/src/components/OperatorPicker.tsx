@@ -7,9 +7,10 @@ interface Props {
   value: string;
   onChange: (v: string) => void;
   placeholder: string;
+  typeFilter?: "train" | "flight";
 }
 
-export default function OperatorPicker({ label, value, onChange, placeholder }: Props) {
+export default function OperatorPicker({ label, value, onChange, placeholder, typeFilter }: Props) {
   const [query, setQuery] = useState(value || "");
   const [open, setOpen] = useState(false);
   const [results, setResults] = useState<any[]>([]);
@@ -36,7 +37,8 @@ export default function OperatorPicker({ label, value, onChange, placeholder }: 
     setLoading(true);
     timerRef.current = setTimeout(async () => {
       try {
-        const data = await (api as any).getOperators(q);
+        const opType = typeFilter === "train" ? "railway" : typeFilter === "flight" ? "airline" : undefined;
+        const data = await (api as any).getOperators(q, opType);
         setResults(data);
       } catch { setResults([]); }
       finally { setLoading(false); }
