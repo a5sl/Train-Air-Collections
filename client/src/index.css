@@ -52,7 +52,7 @@
   --c-surface: 253 250 245;
   --c-surface-card: 253 250 245;
   --c-surface-card-alt: 250 245 237;
-  --c-surface-screen: 23 33 43;
+  --c-surface-screen: 240 228 210;
   --c-content: 74 55 40;
   --c-content-secondary: 168 148 132;
   --c-content-tertiary: 184 172 161;
@@ -65,8 +65,9 @@
   --c-brand-tint: 243 230 223;
   --c-accent: 107 127 140;
   --c-accent-tint: 228 233 236;
-  --c-screen-text: 227 236 240;
-  --c-screen-data: 228 164 139;
+  --c-screen-text: 133 104 80;
+  --c-screen-data: 133 75 54;
+  --c-scanline: 74 55 40;
 }
 
 /* ---------- 宣纸驿馆 · 夜 ---------- */
@@ -89,6 +90,7 @@
   --c-accent-tint: 34 48 60;
   --c-screen-text: 227 236 240;
   --c-screen-data: 228 164 139;
+  --c-scanline: 255 255 255;
   --c-noise-opacity: 0.02;
   --c-grid-opacity: 0.03;
   --deco-mountain: 0.05;
@@ -107,7 +109,7 @@
   --c-surface: 233 231 226;
   --c-surface-card: 239 237 232;
   --c-surface-card-alt: 226 223 216;
-  --c-surface-screen: 26 32 40;
+  --c-surface-screen: 219 215 205;
   --c-content: 43 48 54;
   --c-content-secondary: 120 126 133;
   --c-content-tertiary: 152 157 163;
@@ -120,8 +122,9 @@
   --c-brand-tint: 240 224 218;
   --c-accent: 158 122 34;
   --c-accent-tint: 238 228 205;
-  --c-screen-text: 230 232 235;
-  --c-screen-data: 240 176 120;
+  --c-screen-text: 96 90 78;
+  --c-screen-data: 138 84 26;
+  --c-scanline: 43 48 54;
   --c-noise-opacity: 0.04;
   --c-grid-opacity: 0.03;
   --deco-mountain: 0.05;
@@ -155,6 +158,7 @@
   --c-accent-tint: 45 40 26;
   --c-screen-text: 230 232 235;
   --c-screen-data: 240 180 100;
+  --c-scanline: 255 255 255;
   --c-noise-opacity: 0.025;
   --c-grid-opacity: 0.035;
   --deco-mountain: 0.06;
@@ -173,7 +177,7 @@
   --c-surface: 243 246 250;
   --c-surface-card: 248 250 253;
   --c-surface-card-alt: 236 241 248;
-  --c-surface-screen: 16 34 56;
+  --c-surface-screen: 222 232 243;
   --c-content: 23 50 79;
   --c-content-secondary: 96 125 152;
   --c-content-tertiary: 140 162 182;
@@ -186,8 +190,9 @@
   --c-brand-tint: 222 233 245;
   --c-accent: 224 122 26;
   --c-accent-tint: 248 232 214;
-  --c-screen-text: 214 230 246;
-  --c-screen-data: 255 209 102;
+  --c-screen-text: 70 100 130;
+  --c-screen-data: 150 84 12;
+  --c-scanline: 23 50 79;
   --c-noise-opacity: 0.02;
   --c-grid-opacity: 0.10;
   --deco-mountain: 0;
@@ -225,6 +230,7 @@
   --c-accent-tint: 24 52 86;
   --c-screen-text: 220 233 246;
   --c-screen-data: 245 197 66;
+  --c-scanline: 255 255 255;
   --c-noise-opacity: 0.015;
   --c-grid-opacity: 0.14;
   --deco-mountain: 0;
@@ -245,7 +251,7 @@
   --c-surface: 246 248 247;
   --c-surface-card: 250 252 251;
   --c-surface-card-alt: 240 244 242;
-  --c-surface-screen: 20 32 38;
+  --c-surface-screen: 224 234 230;
   --c-content: 44 58 66;
   --c-content-secondary: 122 142 148;
   --c-content-tertiary: 160 176 180;
@@ -258,8 +264,9 @@
   --c-brand-tint: 224 232 244;
   --c-accent: 111 168 148;
   --c-accent-tint: 226 238 232;
-  --c-screen-text: 226 234 236;
-  --c-screen-data: 148 196 178;
+  --c-screen-text: 80 104 102;
+  --c-screen-data: 47 104 90;
+  --c-scanline: 44 58 66;
   --c-noise-opacity: 0.025;
   --c-grid-opacity: 0.03;
   --deco-mountain: 0.035;
@@ -295,6 +302,7 @@
   --c-accent-tint: 26 44 40;
   --c-screen-text: 222 232 232;
   --c-screen-data: 148 206 182;
+  --c-scanline: 255 255 255;
   --c-noise-opacity: 0.02;
   --c-grid-opacity: 0.03;
   --deco-mountain: 0.045;
@@ -315,7 +323,7 @@
   --c-surface: 233 223 198;
   --c-surface-card: 238 230 208;
   --c-surface-card-alt: 226 214 186;
-  --c-surface-screen: 38 32 26;
+  --c-surface-screen: 218 202 168;
   --c-content: 43 38 32;
   --c-content-secondary: 122 110 92;
   --c-content-tertiary: 158 146 126;
@@ -328,8 +336,9 @@
   --c-brand-tint: 238 214 200;
   --c-accent: 148 124 38;
   --c-accent-tint: 232 220 190;
-  --c-screen-text: 240 232 214;
-  --c-screen-data: 244 176 122;
+  --c-screen-text: 96 82 62;
+  --c-screen-data: 142 35 26;
+  --c-scanline: 43 38 32;
   --c-noise-opacity: 0.05;
   --c-grid-opacity: 0.02;
   --deco-mountain: 0.03;
@@ -366,6 +375,7 @@
   --c-accent-tint: 52 46 28;
   --c-screen-text: 232 226 208;
   --c-screen-data: 244 186 122;
+  --c-scanline: 255 255 255;
   --c-noise-opacity: 0.04;
   --c-grid-opacity: 0.02;
   --deco-mountain: 0.04;
@@ -443,8 +453,8 @@
       0deg,
       transparent,
       transparent 2px,
-      rgba(255,255,255,0.015) 2px,
-      rgba(255,255,255,0.015) 4px
+      rgb(var(--c-scanline) / 0.025) 2px,
+      rgb(var(--c-scanline) / 0.025) 4px
     );
   }
 }

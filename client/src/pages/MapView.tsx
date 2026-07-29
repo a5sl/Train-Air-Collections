@@ -32,13 +32,13 @@ const ZOOM_THRESHOLD = 9;
 function normalizeCity(city: string): string {
   let c = city.replace(/\s*\(.*?\)\s*$/, '').trim();
   const EN_TO_CN: Record<string, string> = {
-    'beijing': '\u5317\u4eac', 'shanghai': '\u4e0a\u6d77', 'guangzhou': '\u5e7f\u5dde',
-    'shenzhen': '\u6df1\u5733', 'chengdu': '\u6210\u90fd', 'wuhan': '\u6b66\u6c49',
-    'hangzhou': '\u676d\u5dde', 'xian': '\u897f\u5b89', 'chongqing': '\u91cd\u5e86',
-    'nanjing': '\u5357\u4eac', 'kunming': '\u6606\u660e', 'changsha': '\u957f\u6c99',
-    'tianjin': '\u5929\u6d25', 'shenyang': '\u6c88\u9633', 'zhengzhou': '\u90d1\u5dde',
-    'jinan': '\u6d4e\u5357', 'xiamen': '\u53a6\u95e8', 'fuzhou': '\u798f\u5dde',
-    'xianggang': '\u9999\u6e2f', 'hongkong': '\u9999\u6e2f', 'aomen': '\u6fb3\u95e8', 'macau': '\u6fb3\u95e8',
+    'beijing': '北京', 'shanghai': '上海', 'guangzhou': '广州',
+    'shenzhen': '深圳', 'chengdu': '成都', 'wuhan': '武汉',
+    'hangzhou': '杭州', 'xian': '西安', 'chongqing': '重庆',
+    'nanjing': '南京', 'kunming': '昆明', 'changsha': '长沙',
+    'tianjin': '天津', 'shenyang': '沈阳', 'zhengzhou': '郑州',
+    'jinan': '济南', 'xiamen': '厦门', 'fuzhou': '福州',
+    'xianggang': '香港', 'hongkong': '香港', 'aomen': '澳门', 'macau': '澳门',
   };
   const lower = c.toLowerCase();
   if (EN_TO_CN[lower]) return EN_TO_CN[lower];
@@ -211,24 +211,24 @@ export default function MapView() {
   const displayCityName = selectedCity ? normalizeCity(selectedCity) : null;
 
   const filterOptions = [
-    { value: 'all' as const, label: '\u5168\u90e8\u663e\u793a', desc: '' },
-    { value: 'train' as const, label: '\u4ec5\u94c1\u8f68', desc: '' },
-    { value: 'flight' as const, label: '\u4ec5\u4e91\u8def', desc: '' },
+    { value: 'all' as const, label: '全部显示', desc: '' },
+    { value: 'train' as const, label: '仅铁轨', desc: '' },
+    { value: 'flight' as const, label: '仅云路', desc: '' },
   ];
 
   return (
     <div className="space-y-4 h-[calc(100vh-12rem)] flex flex-col">
       <div className="flex items-center justify-between flex-shrink-0">
         <div>
-          <h2 className="text-2xl font-display font-bold text-content">\u884c\u65c5\u8206\u56fe</h2>
-          <p className="text-sm text-content-secondary mt-1">{trips.filter((t) => t.departureStation?.latitude).length} \u6761\u53ef\u793a\u4e4b\u884c\u65c5</p>
+          <h2 className="text-2xl font-display font-bold text-content">行旅舆图</h2>
+          <p className="text-sm text-content-secondary mt-1">{trips.filter((t) => t.departureStation?.latitude).length} 条可示之行旅</p>
         </div>
         <div className="flex items-center gap-2" ref={dropdownRef}>
           <div className="relative">
             <button onClick={() => setDropdownOpen(!dropdownOpen)}
               className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg bg-brand-tint text-brand-deep hover:bg-brand/20 transition-colors">
               <Filter className="w-3.5 h-3.5" />
-              {filterMode === 'all' ? '\u5168\u90e8\u663e\u793a' : filterMode === 'train' ? '\u4ec5\u94c1\u8f68' : '\u4ec5\u4e91\u8def'}
+              {filterMode === 'all' ? '全部显示' : filterMode === 'train' ? '仅铁轨' : '仅云路'}
               <ChevronDown className={`w-3.5 h-3.5 transition-transform ${dropdownOpen ? 'rotate-180' : ''}`} />
             </button>
             {dropdownOpen && (
@@ -247,19 +247,19 @@ export default function MapView() {
 
       {selectedCity && (
         <div className="flex items-center justify-between px-4 py-2.5 bg-surface-card-alt rounded-lg border border-line flex-shrink-0">
-          <span className="text-sm text-content">\u6b63\u5728\u663e\u793a\u300c<span className="font-semibold text-content">{displayCityName}</span>\u300d\u7684\u884c\u7a0b \u00b7 \u5171 {displayTrips.length} \u6761</span>
+          <span className="text-sm text-content">正在显示「<span className="font-semibold text-content">{displayCityName}</span>」的行程 · 共 {displayTrips.length} 条</span>
           <button onClick={clearCityFilter} className="inline-flex items-center gap-1 text-xs text-brand hover:text-brand-deep font-medium transition-colors">
-            <X className="w-3.5 h-3.5" />\u663e\u793a\u5168\u90e8
+            <X className="w-3.5 h-3.5" />显示全部
           </button>
         </div>
       )}
 
       {loading ? (
-        <div className="flex-1 card flex items-center justify-center"><p className="text-content-secondary">\u52a0\u8f7d\u5730\u56fe\u4e2d...</p></div>
+        <div className="flex-1 card flex items-center justify-center"><p className="text-content-secondary">加载地图中...</p></div>
       ) : (
-        <div className="flex-1 card overflow-hidden">
+        <div className="flex-1 card overflow-hidden relative isolate">
           <MapContainer center={[35, 105]} zoom={4} minZoom={3} maxBounds={[[-85, -180], [85, 180]]} maxBoundsViscosity={0.5} className="w-full h-full" scrollWheelZoom={true}>
-            <TileLayer attribution='&copy; <a href="https://www.amap.com/">\u9ad8\u5fb7\u5730\u56fe</a>' url="https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}" subdomains={['1','2','3','4']} noWrap={true} />
+            <TileLayer attribution='&copy; <a href="https://www.amap.com/">高德地图</a>' url="https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}" subdomains={['1','2','3','4']} noWrap={true} />
             <MapBounds trips={displayTrips} />
             <FitBoundsOnFilter trips={displayTrips} city={selectedCity} />
             <MapClickClear onClear={clearCityFilter} markerClickRef={markerClickRef} />
@@ -270,7 +270,7 @@ export default function MapView() {
                 <Popup>
                   <div className="text-sm space-y-1">
                     <p className="font-mono font-semibold">{trip.trainFlightNumber}</p>
-                    <p className="text-content-secondary">{trip.departureStation?.name} \u2192 {trip.arrivalStation?.name}</p>
+                    <p className="text-content-secondary">{trip.departureStation?.name} → {trip.arrivalStation?.name}</p>
                     <p className="text-content-tertiary text-xs">{trip.departureDate} | {trip.operator}</p>
                     {trip.distanceKm && <p className="text-content-tertiary text-xs font-mono">{trip.distanceKm} km</p>}
                   </div>
@@ -282,10 +282,10 @@ export default function MapView() {
       )}
 
       <div className="flex items-center gap-5 text-xs text-content-secondary flex-shrink-0 flex-wrap">
-        <div className="flex items-center gap-1.5"><div className="w-4 h-0.5 rounded" style={{ backgroundColor: C.trainLine }} /><span>\u706b\u8f66</span></div>
-        <div className="flex items-center gap-1.5"><div className="w-4 h-0.5 rounded" style={{ backgroundColor: C.flightLine }} /><span>\u822a\u73ed</span></div>
-        <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: C.trainStation }} /><span>\u706b\u8f66\u7ad9</span></div>
-        <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: C.flightStation }} /><span>\u673a\u573a</span></div>
+        <div className="flex items-center gap-1.5"><div className="w-4 h-0.5 rounded" style={{ backgroundColor: C.trainLine }} /><span>火车</span></div>
+        <div className="flex items-center gap-1.5"><div className="w-4 h-0.5 rounded" style={{ backgroundColor: C.flightLine }} /><span>航班</span></div>
+        <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: C.trainStation }} /><span>火车站</span></div>
+        <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: C.flightStation }} /><span>机场</span></div>
       </div>
     </div>
   );

@@ -59,7 +59,7 @@ export default function Dashboard() {
     const thisYearTrips = trips.filter((t) => t.departureDate.startsWith(thisYear));
     const routeMap = new Map<string, { dep: string; arr: string; count: number }>();
     trips.forEach((t) => {
-      const key = (t.departureStation?.name ?? '?') + ' \u2192 ' + (t.arrivalStation?.name ?? '?');
+      const key = (t.departureStation?.name ?? '?') + ' → ' + (t.arrivalStation?.name ?? '?');
       if (!routeMap.has(key)) routeMap.set(key, { dep: t.departureStation?.name ?? '?', arr: t.arrivalStation?.name ?? '?', count: 0 });
       routeMap.get(key)!.count++;
     });
@@ -77,7 +77,14 @@ export default function Dashboard() {
     return { trainTrips, flightTrips, totalDistance, totalDuration, costByCurrency, cities: cities.size, thisYearTrips: thisYearTrips.length, topRoutes, topOperators, longest, avgDistance, topCities };
   }, [trips]);
 
-  const latestTrip = trips.length > 0 ? trips[0] : null;
+  const latestTrip = useMemo(() => {
+    if (trips.length === 0) return null;
+    return [...trips].sort((a, b) => {
+      const ka = a.departureDate + ' ' + (a.departureTime || '');
+      const kb = b.departureDate + ' ' + (b.departureTime || '');
+      return kb.localeCompare(ka) || b.id - a.id;
+    })[0];
+  }, [trips]);
 
   if (loading) {
     return (
@@ -119,7 +126,7 @@ export default function Dashboard() {
       {latestTrip && (
         <Reveal delay={100}>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            <div className="lg:col-span-2"><Tilt max={3.5}><Ticket trip={latestTrip} size="hero" onClick={() => navigate('/edit/' + latestTrip.id)} /></Tilt></div>
+            <div className="lg:col-span-2"><Ticket trip={latestTrip} size="hero" onClick={() => navigate('/edit/' + latestTrip.id)} /></div>
             <div className="flex flex-col gap-3">
               <TelemetryPanel label="行旅总计" labelEn="TOTAL TRIPS" value={trips.length} icon={BarChart3} />
               <TelemetryPanel label="万里征途" labelEn="TOTAL DISTANCE" value={stats.totalDistance} unit="km" icon={Navigation} format={(n) => n.toLocaleString()} />
@@ -159,8 +166,8 @@ export default function Dashboard() {
             <h3 className="text-xs font-semibold text-content-secondary uppercase tracking-wider mb-4 flex items-center gap-2"><Star className="w-4 h-4 text-brand" />行旅擷英</h3>
             <div className="space-y-0">
               {stats.topOperators.length > 0 && <HighlightRow label="最常乘" value={stats.topOperators[0][0] + ' (' + stats.topOperators[0][1] + '次)'} />}
-              {stats.topRoutes.length > 0 && <HighlightRow label="常履之途" value={stats.topRoutes[0].dep + ' \u2192 ' + stats.topRoutes[0].arr + ' (' + stats.topRoutes[0].count + '次)'} />}
-              {stats.longest && <HighlightRow label="至远之行" value={(stats.longest.departureStation?.name ?? '?') + ' \u2192 ' + (stats.longest.arrivalStation?.name ?? '?') + ' ' + (stats.longest.distanceKm ?? 0).toLocaleString() + 'km'} />}
+              {stats.topRoutes.length > 0 && <HighlightRow label="常履之途" value={stats.topRoutes[0].dep + ' → ' + stats.topRoutes[0].arr + ' (' + stats.topRoutes[0].count + '次)'} />}
+              {stats.longest && <HighlightRow label="至远之行" value={(stats.longest.departureStation?.name ?? '?') + ' → ' + (stats.longest.arrivalStation?.name ?? '?') + ' ' + (stats.longest.distanceKm ?? 0).toLocaleString() + 'km'} />}
               <HighlightRow label="均程" value={stats.avgDistance.toLocaleString() + ' km / 次'} />
             </div>
           </Tilt>

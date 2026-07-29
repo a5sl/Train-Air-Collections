@@ -39,5 +39,5 @@ export function getSolarTermRange(date?: Date): string {
   const current = getCurrentSolarTerm(now);
   const idx = SOLAR_TERMS.indexOf(current);
   const next = SOLAR_TERMS[(idx + 1) % 24];
-  return current + '\u2014' + next;
+  return current + '—' + next;
 }

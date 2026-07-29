@@ -22,7 +22,7 @@ export default function ThemeToggle() {
       onClick={handleToggle}
       className="relative w-9 h-9 rounded-lg border border-line bg-surface-card flex items-center justify-center
                  hover:bg-surface-card-alt transition-all group"
-      title={theme === 'light' ? '\u5207\u6362\u81f3\u7384\u591c' : '\u5207\u6362\u81f3\u5ba3\u7eb8'}
+      title={theme === 'light' ? '切换至玄夜' : '切换至宣纸'}
     >
       <Sun
         className={`w-4 h-4 absolute transition-all duration-300 ${

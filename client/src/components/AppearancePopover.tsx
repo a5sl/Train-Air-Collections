@@ -1,22 +1,23 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Palette, Sun, Moon, Monitor, Check } from 'lucide-react';
 import {
   STYLES, getStyle, setStyle, getMode, setMode, getMotionLevel, setMotionLevel,
-  type StyleId, type ThemeMode, type MotionLevel,
+  getResolvedTheme, onAppearanceChange,
+  type StyleId, type ThemeMode, type MotionLevel, type ResolvedTheme,
 } from '../lib/theme';
+import { Palette, Sun, Moon, Monitor, Check } from 'lucide-react';
 import Segmented from './Segmented';
 
 /**
  * 外观偏好：风格包 × 明暗 × 动效强度。
  * 预览卡片直接以目标风格的 CSS 变量作用域渲染迷你票据。
  */
-function StylePreviewCard({ id, active, onPick }: { id: StyleId; active: boolean; onPick: () => void }) {
+function StylePreviewCard({ id, active, onPick, theme }: { id: StyleId; active: boolean; onPick: () => void; theme: ResolvedTheme }) {
   const meta = STYLES.find((s) => s.id === id)!;
   return (
     <button
       type="button"
       data-style={id}
-      data-theme={meta.defaultTheme}
+      data-theme={theme}
       onClick={onPick}
       className={
         'relative text-left rounded-lg border p-2 transition-all bg-surface group ' +
@@ -71,7 +72,10 @@ export default function AppearancePopover() {
   const [style, setStyleState] = useState<StyleId>(getStyle());
   const [mode, setModeState] = useState<ThemeMode>(getMode());
   const [motion, setMotionState] = useState<MotionLevel>(getMotionLevel());
+  const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>(getResolvedTheme());
   const boxRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => onAppearanceChange(() => setResolvedTheme(getResolvedTheme())), []);
 
   useEffect(() => {
     if (!open) return;
@@ -114,7 +118,7 @@ export default function AppearancePopover() {
 
           <div className="grid grid-cols-2 gap-2 mb-4">
             {STYLES.map((s) => (
-              <StylePreviewCard key={s.id} id={s.id} active={style === s.id} onPick={() => pickStyle(s.id)} />
+              <StylePreviewCard key={s.id} id={s.id} active={style === s.id} onPick={() => pickStyle(s.id)} theme={resolvedTheme} />
             ))}
             <div className="rounded-lg border border-dashed border-line p-2 flex flex-col items-center justify-center text-center" style={{ borderRadius: 'var(--radius-card)' }}>
               <span className="text-[10px] text-content-tertiary leading-relaxed">

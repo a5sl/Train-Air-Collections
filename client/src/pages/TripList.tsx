@@ -35,15 +35,15 @@ export default function TripList() {
   useEffect(() => { loadTrips(); }, []);
 
   const handleDelete = async (id: number) => {
-    const ok = await confirmDlg({ title: '\u6495\u53bb\u6b64\u884c\uff1f', message: '\u884c\u7a0b\u8bb0\u5f55\u5c06\u6c38\u4e45\u79fb\u9664\uff0c\u4e0d\u53ef\u590d\u5f97\u3002', confirmText: '\u6495\u53bb', danger: true });
+    const ok = await confirmDlg({ title: '撕去此行？', message: '行程记录将永久移除，不可复得。', confirmText: '撕去', danger: true });
     if (!ok) return;
     setTearingId(id);
     setTimeout(async () => {
       try {
         await api.deleteTrip(id);
         setTrips(prev => prev.filter(t => t.id !== id));
-        toast('\u5df2\u6495\u53bb\u4e00\u884c\u884c\u7a0b');
-      } catch { toast('\u5220\u9664\u5931\u8d25', 'err'); }
+        toast('已撕去一行行程');
+      } catch { toast('删除失败', 'err'); }
       finally { setTearingId(null); }
     }, 520);
   };
@@ -55,15 +55,15 @@ export default function TripList() {
     try {
       const text = await file.text();
       const result: any = await api.importTripsCSV(text);
-      toast('\u5bfc\u5165\u6bd5: ' + result.imported + ' \u6761\u6210\u529f' + (result.errors.length > 0 ? ', ' + result.errors.length + ' \u6761\u5931\u8d25' : ''));
+      toast('导入毕: ' + result.imported + ' 条成功' + (result.errors.length > 0 ? ', ' + result.errors.length + ' 条失败' : ''));
       loadTrips();
-    } catch (err: any) { toast('\u5bfc\u5165\u8d25: ' + err.message, 'err'); }
+    } catch (err: any) { toast('导入败: ' + err.message, 'err'); }
     finally { setImporting(false); if (fileRef.current) fileRef.current.value = ''; }
   };
 
   const handleSeed = async () => {
-    try { const result: any = await api.seedData(); toast('\u5df2\u8f7d\u5165 ' + result.stations + ' \u4e2a\u7ad9\u70b9, ' + result.operators + ' \u4e2a\u8fd0\u8425\u5546'); }
-    catch { toast('\u8f7d\u5165\u8d25', 'err'); }
+    try { const result: any = await api.seedData(); toast('已载入 ' + result.stations + ' 个站点, ' + result.operators + ' 个运营商'); }
+    catch { toast('载入败', 'err'); }
   };
 
   const filtered = trips
@@ -107,17 +107,17 @@ export default function TripList() {
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h2 className="text-2xl font-display font-bold text-content">\u884c\u65c5\u5168\u5f55</h2>
-          <p className="text-sm text-content-secondary mt-1">{trips.length} \u6761\u8bb0\u5f55</p>
+          <h2 className="text-2xl font-display font-bold text-content">行旅全录</h2>
+          <p className="text-sm text-content-secondary mt-1">{trips.length} 条记录</p>
         </div>
         <div className="flex items-center gap-2">
           {seedMsg && <span className="text-xs text-brand">{seedMsg}</span>}
-          <button onClick={handleSeed} className="btn-secondary text-xs" title="\u521d\u59cb\u5316\u8f66\u7ad9\u548c\u8fd0\u8425\u5546\u6570\u636e">
-            <Database className="w-3.5 h-3.5" />\u521d\u59cb\u5316\u6570\u636e
+          <button onClick={handleSeed} className="btn-secondary text-xs" title="初始化车站和运营商数据">
+            <Database className="w-3.5 h-3.5" />初始化数据
           </button>
           <input type="file" accept=".csv" ref={fileRef} onChange={handleCSVImport} className="hidden" />
           <button onClick={() => fileRef.current?.click()} disabled={importing} className="btn-secondary text-xs">
-            <Upload className="w-3.5 h-3.5" />{importing ? '\u5bfc\u5165\u4e2d...' : '\u5bfc\u5165CSV'}
+            <Upload className="w-3.5 h-3.5" />{importing ? '导入中...' : '导入CSV'}
           </button>
         </div>
       </div>
@@ -125,22 +125,22 @@ export default function TripList() {
       <div className="flex items-center gap-3 flex-wrap">
         <Segmented
           options={[
-            { value: 'all' as const, label: '\u5168\u90e8' },
-            { value: 'train' as const, label: '\u94c1\u8f68', icon: Train },
-            { value: 'flight' as const, label: '\u4e91\u8def', icon: Plane },
+            { value: 'all' as const, label: '全部' },
+            { value: 'train' as const, label: '铁轨', icon: Train },
+            { value: 'flight' as const, label: '云路', icon: Plane },
           ]}
           value={filter}
           onChange={updateFilter}
         />
         <div className="relative flex-1 max-w-xs">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-content-tertiary" />
-          <input type="text" placeholder="\u641c\u7d22\u8f66\u6b21\u3001\u8fd0\u8425\u5546\u3001\u7ad9\u70b9..." value={searchQuery}
+          <input type="text" placeholder="搜索车次、运营商、站点..." value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)} className="input-field pl-9" id="trip-search" />
         </div>
         <button onClick={() => updateSort(sortOrder === 'desc' ? 'asc' : 'desc')}
           className="px-3 py-1.5 rounded-md text-sm font-medium transition-all text-content-secondary hover:text-content flex items-center gap-1"
-          title={sortOrder === 'desc' ? '\u5f53\u524d: \u6700\u65b0\u5728\u524d' : '\u5f53\u524d: \u6700\u65e9\u5728\u524d'}>
-          <ArrowUpDown className="w-3.5 h-3.5" />\u65f6\u95f4
+          title={sortOrder === 'desc' ? '当前: 最新在前' : '当前: 最早在前'}>
+          <ArrowUpDown className="w-3.5 h-3.5" />时间
           {sortOrder === 'desc' ? <ArrowDown className="w-3 h-3" /> : <ArrowUp className="w-3 h-3" />}
         </button>
       </div>
@@ -153,7 +153,7 @@ export default function TripList() {
           ))}
         </div>
       ) : filtered.length === 0 ? (
-        <div className="card p-12 text-center"><p className="text-content-secondary">\u672a\u89c1\u5339\u914d\u4e4b\u884c\u65c5</p></div>
+        <div className="card p-12 text-center"><p className="text-content-secondary">未见匹配之行旅</p></div>
       ) : (
         <div className="relative">
           {/* Timeline rail */}
@@ -164,7 +164,7 @@ export default function TripList() {
                 {/* Month station marker */}
                 <div className="hidden md:flex items-center gap-3 mb-3">
                   <div className="w-10 h-10 rounded-full border-2 border-brand bg-surface flex items-center justify-center flex-shrink-0 z-10">
-                    <span className="text-xs font-display font-bold text-brand">{parseInt(month.split('-')[1])}\u6708</span>
+                    <span className="text-xs font-display font-bold text-brand">{parseInt(month.split('-')[1])}月</span>
                   </div>
                   <span className="font-mono text-xs text-content-tertiary">{month}</span>
                 </div>
@@ -182,7 +182,7 @@ export default function TripList() {
                             <div className="flex items-center gap-2 flex-wrap">
                               <span className="font-mono font-semibold text-content">{trip.trainFlightNumber}</span>
                               <span className="text-xs px-1.5 py-0.5 rounded bg-brand-tint text-brand">
-                                {trip.type === 'train' ? '\u94c1\u8f68' : '\u4e91\u8def'}
+                                {trip.type === 'train' ? '铁轨' : '云路'}
                               </span>
                               <span className="text-sm text-content-secondary">{trip.operator}</span>
                             </div>
@@ -201,15 +201,15 @@ export default function TripList() {
                                 {trip.trainName && <span>{trip.trainName}</span>}
                                 {trip.vehicleType && <span>{trip.vehicleType}</span>}
                                 {trip.vehicleNumber && <span>#{trip.vehicleNumber}</span>}
-                                {trip.carriageNumber && <span>{trip.carriageNumber}\u8f66\u53a2</span>}
+                                {trip.carriageNumber && <span>{trip.carriageNumber}车厢</span>}
                                 {trip.seatClass && <span>{trip.seatClass}</span>}
-                                {trip.seatNumber && <span>{trip.seatNumber}\u5ea7</span>}
+                                {trip.seatNumber && <span>{trip.seatNumber}座</span>}
                               </div>
                             )}
                           </div>
                           <div className="flex flex-col items-end gap-2 flex-shrink-0">
                             {trip.cost && <span className="font-mono text-sm font-semibold text-content">{trip.currency || ''} {trip.cost.toLocaleString()}</span>}
-                            <button onClick={() => navigate('/edit/' + trip.id)} className="opacity-0 group-hover:opacity-100 transition-opacity text-content-tertiary hover:text-brand" title="\u7f16\u8f91\u884c\u7a0b"><Pencil className="w-4 h-4" /></button>
+                            <button onClick={() => navigate('/edit/' + trip.id)} className="opacity-0 group-hover:opacity-100 transition-opacity text-content-tertiary hover:text-brand" title="编辑行程"><Pencil className="w-4 h-4" /></button>
                             <button onClick={() => handleDelete(trip.id)} className="opacity-0 group-hover:opacity-100 transition-opacity text-content-tertiary hover:text-brand"><Trash2 className="w-4 h-4" /></button>
                           </div>
                         </div>

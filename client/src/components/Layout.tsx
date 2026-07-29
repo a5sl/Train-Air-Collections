@@ -69,6 +69,30 @@ export default function Layout() {
     onEasterEgg: () => setEggRun((n) => n + 1),
   });
 
+  const navLinks = navItems.map(({ to, icon: Icon, label }) => {
+    const active = to === '/' ? location.pathname === '/' : location.pathname.startsWith(to);
+    return (
+      <NavLink
+        key={to}
+        to={to}
+        className={
+          'relative flex flex-col md:flex-row items-center gap-1 md:gap-2 px-3 py-2 rounded-xl text-xs md:text-sm font-medium transition-all ' +
+          (active
+            ? 'text-brand bg-brand-tint'
+            : 'text-content-tertiary hover:text-content hover:bg-surface-card-alt')
+        }
+      >
+        <div className="relative">
+          <Icon className={'w-5 h-5 transition-transform ' + (active ? 'scale-110' : '')} style={{ transitionTimingFunction: 'var(--ease-stamp)' }} />
+          {active && (
+            <span className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-brand animate-stamp-in" />
+          )}
+        </div>
+        <span>{label}</span>
+      </NavLink>
+    );
+  });
+
   return (
     <div className="min-h-screen flex flex-col relative">
       <FxLayer />
@@ -105,36 +129,19 @@ export default function Layout() {
         </div>
       </main>
 
-      <nav
-        className="fixed bottom-0 left-0 right-0 z-40 border-t border-line transition-colors md:static md:border-t-0"
-        style={{ backgroundColor: 'rgb(var(--c-surface) / 0.9)', backdropFilter: 'blur(12px)' }}
-      >
-        <div className="rail-track hidden md:block" style={{ maxWidth: '36rem', margin: '0 auto' }} />
-        <div className="max-w-6xl mx-auto px-2 md:px-4">
-          <div className="flex justify-around md:justify-start md:gap-1 py-1.5 md:py-0 md:fixed md:bottom-6 md:left-1/2 md:-translate-x-1/2 md:bg-surface-card md:rounded-2xl md:shadow-lg md:border md:border-line md:px-2 md:py-1.5">
-            {navItems.map(({ to, icon: Icon, label }) => {
-              const active = to === '/' ? location.pathname === '/' : location.pathname.startsWith(to);
-              return (
-                <NavLink
-                  key={to}
-                  to={to}
-                  className={
-                    'relative flex flex-col md:flex-row items-center gap-1 md:gap-2 px-3 py-2 rounded-xl text-xs md:text-sm font-medium transition-all ' +
-                    (active
-                      ? 'text-brand bg-brand-tint'
-                      : 'text-content-tertiary hover:text-content hover:bg-surface-card-alt')
-                  }
-                >
-                  <div className="relative">
-                    <Icon className={'w-5 h-5 transition-transform ' + (active ? 'scale-110' : '')} style={{ transitionTimingFunction: 'var(--ease-stamp)' }} />
-                    {active && (
-                      <span className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-brand animate-stamp-in" />
-                    )}
-                  </div>
-                  <span>{label}</span>
-                </NavLink>
-              );
-            })}
+      <nav className="fixed bottom-0 left-0 right-0 z-40 pointer-events-none" aria-label="主导航">
+        {/* 移动端：全宽贴底栏 */}
+        <div
+          className="md:hidden border-t border-line pointer-events-auto transition-colors"
+          style={{ backgroundColor: 'rgb(var(--c-surface) / 0.9)', backdropFilter: 'blur(12px)' }}
+        >
+          <div className="max-w-6xl mx-auto px-2 flex justify-around py-1.5">{navLinks}</div>
+        </div>
+        {/* 桌面端：始终浮动的胶囊，铁轨作底衬 */}
+        <div className="hidden md:block relative mx-auto w-fit mb-6">
+          <div className="rail-track absolute left-1/2 -translate-x-1/2 bottom-2.5 w-[36rem] max-w-[86vw]" aria-hidden="true" />
+          <div className="relative flex gap-1 px-2 py-1.5 bg-surface-card rounded-2xl shadow-lg border border-line pointer-events-auto">
+            {navLinks}
           </div>
         </div>
       </nav>
