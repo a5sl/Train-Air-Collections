@@ -39,8 +39,13 @@ export const api = {
   createStation: (data: Partial<Station>) =>
     request<Station>("/stations", { method: "POST", body: JSON.stringify(data) }),
 
-  getOperators: (q?: string) =>
-    request<any[]>(`/operators${q ? `?q=${encodeURIComponent(q)}` : ""}`),
+  getOperators: (q?: string, type?: string) => {
+    const params = new URLSearchParams();
+    if (q) params.set("q", q);
+    if (type) params.set("type", type);
+    const qs = params.toString();
+    return request<any[]>(`/operators${qs ? `?${qs}` : ""}`);
+  },
   createOperator: (data: { name: string; type: string }) =>
     request<any>("/operators", { method: "POST", body: JSON.stringify(data) }),
 

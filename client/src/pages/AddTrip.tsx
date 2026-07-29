@@ -441,6 +441,7 @@ export default function AddTrip() {
               value={form.operator}
               onChange={(v) => update({ operator: v })}
               placeholder={form.type === "train" ? "如: 中国国铁, JR东日本" : "如: 全日空, 中国国航"}
+              typeFilter={form.type as "train" | "flight"}
             />
             <div>
               <label className="label-text">

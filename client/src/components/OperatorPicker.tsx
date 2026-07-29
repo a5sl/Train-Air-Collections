@@ -8,9 +8,10 @@ interface Props {
   value: string;
   onChange: (v: string) => void;
   placeholder: string;
+  typeFilter?: "train" | "flight";
 }
 
-export default function OperatorPicker({ label, value, onChange, placeholder }: Props) {
+export default function OperatorPicker({ label, value, onChange, placeholder, typeFilter }: Props) {
   const { toast } = useToast();
   const [query, setQuery] = useState(value || "");
   const [open, setOpen] = useState(false);
@@ -38,7 +39,8 @@ export default function OperatorPicker({ label, value, onChange, placeholder }: 
     setLoading(true);
     timerRef.current = setTimeout(async () => {
       try {
-        const data = await (api as any).getOperators(q);
+        const opType = typeFilter === "train" ? "railway" : typeFilter === "flight" ? "airline" : undefined;
+        const data = await (api as any).getOperators(q, opType);
         setResults(data);
       } catch { setResults([]); }
       finally { setLoading(false); }
@@ -60,14 +62,13 @@ export default function OperatorPicker({ label, value, onChange, placeholder }: 
   };
 
   const handleAdd = async () => {
-   if (!newOp.name) return;
+    if (!newOp.name) return;
     try {
       await (api as any).createOperator(newOp);
       selectOp(newOp.name);
       setShowAdd(false);
-     setNewOp({ name: "", type: "railway",  });
       setNewOp({ name: "", type: "railway" });
-    } catch { toast("添败", 'err'); }
+    } catch { toast("添加失败", "err"); }
   };
 
   return (
@@ -118,7 +119,6 @@ export default function OperatorPicker({ label, value, onChange, placeholder }: 
           {results.map((o: any) => (
             <div key={o.id} onClick={() => selectOp(o.name)} className="station-option">
               <span className="font-medium text-ink-800">{o.name}</span>
-             <span className="text-content-secondary ml-2 text-xs">{o.type === "railway" ? "铁路" : o.type === "airline" ? "航空" : "其他"}</span>
               <span className="text-content-secondary ml-2 text-xs">{o.type === "railway" ? "铁路" : o.type === "airline" ? "航空" : "其他"}</span>
             </div>
           ))}

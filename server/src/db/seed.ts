@@ -1,4 +1,4 @@
-import { sql } from "drizzle-orm";
+import { sql, eq, and } from "drizzle-orm";
 import { seedDb, saveSeedDb } from "./index";
 import { stations, airports, operators } from "./schema";
 import { getStations, createTrip } from "./store";
@@ -16,11 +16,18 @@ export interface Operator {
   createdAt: string;
 }
 
-export function getOperators(q?: string) {
-  if (!q) return seedDb.select().from(operators).orderBy(sql`type, name`).all() as Operator[];
-  return seedDb.select().from(operators).where(
-    sql`(${operators.name} LIKE ${"%" + q + "%"} OR ${operators.code} LIKE ${q.toUpperCase() + "%"})`
-  ).orderBy(sql`CASE WHEN ${operators.code} LIKE ${q.toUpperCase() + "%"} THEN 0 ELSE 1 END, name`).limit(20).all() as Operator[];
+export function getOperators(q?: string, typeFilter?: string) {
+  if (!q && !typeFilter) return seedDb.select().from(operators).orderBy(sql`type, name`).all() as Operator[];
+  let query = seedDb.select().from(operators);
+  if (typeFilter && q) {
+    query = query.where(and(eq(operators.type, typeFilter), sql`(${operators.name} LIKE ${"%" + q + "%"} OR ${operators.code} LIKE ${q.toUpperCase() + "%"})`));
+  } else if (typeFilter) {
+    query = query.where(eq(operators.type, typeFilter));
+  } else if (q) {
+    query = query.where(sql`(${operators.name} LIKE ${"%" + q + "%"} OR ${operators.code} LIKE ${q.toUpperCase() + "%"})`);
+  }
+  if (q) query = query.orderBy(sql`CASE WHEN ${operators.code} LIKE ${q.toUpperCase() + "%"} THEN 0 ELSE 1 END, name`).limit(20) as any;
+  return query.all() as Operator[];
 }
 
 export function addOperator(data: { name: string; type: string }) {
