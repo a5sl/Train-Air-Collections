@@ -53,27 +53,32 @@ router.get("/", (_req: Request, res: Response) => {
   try {
     const allTrips = userDb.select().from(trips).orderBy(desc(trips.departureDate), desc(trips.id)).all();
 
-    // Batch-fetch all relevant stations + airports
-    const stationIds = new Set<number>();
-    allTrips.forEach(t => { stationIds.add(t.departureStationId); stationIds.add(t.arrivalStationId); });
-    const ids = Array.from(stationIds);
+    // Batch-fetch stations and airports separately to avoid ID collisions
+    const trainIds = new Set<number>();
+    const flightIds = new Set<number>();
+    allTrips.forEach(t => {
+      if (t.type === 'flight') { flightIds.add(t.departureStationId); flightIds.add(t.arrivalStationId); }
+      else { trainIds.add(t.departureStationId); trainIds.add(t.arrivalStationId); }
+    });
     const stationMap = new Map<number, any>();
-    if (ids.length > 0) {
-      const foundStations = seedDb.select().from(stations).where(
-        inArray(stations.id, ids)
-      ).all();
-      foundStations.forEach(s => stationMap.set(s.id, s));
-      const foundAirports = seedDb.select().from(airports).where(
-        inArray(airports.id, ids)
-      ).all();
-      foundAirports.forEach(s => stationMap.set(s.id, s));
+    const airportMap = new Map<number, any>();
+    if (trainIds.size > 0) {
+      seedDb.select().from(stations).where(inArray(stations.id, Array.from(trainIds))).all()
+        .forEach(s => stationMap.set(s.id, s));
+    }
+    if (flightIds.size > 0) {
+      seedDb.select().from(airports).where(inArray(airports.id, Array.from(flightIds))).all()
+        .forEach(s => airportMap.set(s.id, s));
     }
 
-   const data = allTrips.map(trip => ({
-      ...normalizeTrip(trip),
-      departureStation: stationMap.get(trip.departureStationId) || null,
-      arrivalStation: stationMap.get(trip.arrivalStationId) || null,
-    }));
+    const data = allTrips.map(trip => {
+      const map = trip.type === 'flight' ? airportMap : stationMap;
+      return {
+        ...normalizeTrip(trip),
+        departureStation: map.get(trip.departureStationId) || null,
+        arrivalStation: map.get(trip.arrivalStationId) || null,
+      };
+    });
 
     res.json({ success: true, data });
   } catch (err: any) {
