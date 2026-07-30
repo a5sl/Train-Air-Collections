@@ -8,12 +8,9 @@ import { motionSpeed, prefersReducedMotion } from '../../lib/motion';
 function FlapChar({ ch, delayMs }: { ch: string; delayMs: number }) {
   const [display, setDisplay] = useState('0');
   const [flipping, setFlipping] = useState(false);
-  const prev = useRef('0');
   const timers = useRef<number[]>([]);
 
   useEffect(() => {
-    if (ch === prev.current) return;
-    prev.current = ch;
     if (prefersReducedMotion()) { setDisplay(ch); return; }
     const full = 340 / motionSpeed();
     timers.current.forEach(clearTimeout);
@@ -23,9 +20,9 @@ function FlapChar({ ch, delayMs }: { ch: string; delayMs: number }) {
       timers.current.push(window.setTimeout(() => setDisplay(ch), full * 0.5));
       timers.current.push(window.setTimeout(() => setFlipping(false), full + 30));
     }, delayMs));
-  }, [ch, delayMs]);
 
-  useEffect(() => () => timers.current.forEach(clearTimeout), []);
+    return () => { timers.current.forEach(clearTimeout); };
+  }, [ch, delayMs]);
 
   if (!/[0-9]/.test(ch)) {
     return <span className="inline-block opacity-70" style={ch === ' ' ? { minWidth: '0.35em' } : undefined}>{ch}</span>;

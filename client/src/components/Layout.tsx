@@ -39,7 +39,7 @@ function SkyClock() {
 
   return (
     <div className="flex items-center gap-3 text-xs">
-      <span className="text-content-secondary">今日 · <span className="text-brand font-medium">{term}</span></span>
+      <span className="text-content-secondary">今日 · <span className="text-brand font-medium">{term}期间</span></span>
       <span className="font-mono text-content-secondary">
         {time.split('').map((ch, i) =>
           ch === ':' ? (
@@ -76,7 +76,7 @@ export default function Layout() {
         key={to}
         to={to}
         className={
-          'relative flex flex-col md:flex-row items-center gap-1 md:gap-2 px-3 py-2 rounded-xl text-xs md:text-sm font-medium transition-all ' +
+          'relative flex flex-col md:flex-row items-center gap-1 md:gap-1.5 px-2.5 py-2 rounded-xl text-xs md:text-sm font-medium transition-all ' +
           (active
             ? 'text-brand bg-brand-tint'
             : 'text-content-tertiary hover:text-content hover:bg-surface-card-alt')
@@ -139,7 +139,7 @@ export default function Layout() {
         </div>
         {/* 桌面端：始终浮动的胶囊，铁轨作底衬 */}
         <div className="hidden md:block relative mx-auto w-fit mb-6">
-          <div className="rail-track absolute left-1/2 -translate-x-1/2 bottom-2.5 w-[36rem] max-w-[86vw]" aria-hidden="true" />
+          <div className="rail-track absolute left-1/2 -translate-x-1/2 bottom-2.5 w-72 max-w-[86vw]" aria-hidden="true" />
           <div className="relative flex gap-1 px-2 py-1.5 bg-surface-card rounded-2xl shadow-lg border border-line pointer-events-auto">
             {navLinks}
           </div>

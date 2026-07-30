@@ -13,6 +13,39 @@ function normalizeDate(raw: string): string {
   return raw;
 }
 
+/** Map Drizzle row keys to the camelCase names the client expects.
+ *  Drizzle ORM normally does this, but we add a defensive pass
+ *  so that any version / driver edge case cannot break the frontend. */
+function normalizeTrip(raw: any) {
+  return {
+    id: raw.id,
+    type: raw.type,
+    departureDate: raw.departureDate ?? raw.departure_date ?? "",
+    arrivalDate: raw.arrivalDate ?? raw.arrival_date ?? "",
+    departureTime: raw.departureTime ?? raw.departure_time ?? "",
+    arrivalTime: raw.arrivalTime ?? raw.arrival_time ?? "",
+    departureTimezone: raw.departureTimezone ?? raw.departure_timezone ?? "",
+    arrivalTimezone: raw.arrivalTimezone ?? raw.arrival_timezone ?? "",
+    departureStationId: raw.departureStationId ?? raw.departure_station_id ?? 0,
+    arrivalStationId: raw.arrivalStationId ?? raw.arrival_station_id ?? 0,
+    operator: raw.operator ?? "",
+    trainFlightNumber: raw.trainFlightNumber ?? raw.train_flight_number ?? "",
+    trainName: raw.trainName ?? raw.train_name ?? null,
+    vehicleType: raw.vehicleType ?? raw.vehicle_type ?? null,
+    vehicleNumber: raw.vehicleNumber ?? raw.vehicle_number ?? null,
+    carriageNumber: raw.carriageNumber ?? raw.carriage_number ?? null,
+    durationMinutes: raw.durationMinutes ?? raw.duration_minutes ?? null,
+    distanceKm: raw.distanceKm ?? raw.distance_km ?? null,
+    cost: raw.cost ?? null,
+    currency: raw.currency ?? null,
+    seatNumber: raw.seatNumber ?? raw.seat_number ?? null,
+    seatClass: raw.seatClass ?? raw.seat_class ?? null,
+    notes: raw.notes ?? null,
+    createdAt: raw.createdAt ?? raw.created_at ?? "",
+    updatedAt: raw.updatedAt ?? raw.updated_at ?? "",
+  };
+}
+
 const router = Router();
 
 // GET /api/trips — returns all trips with station details
@@ -36,8 +69,8 @@ router.get("/", (_req: Request, res: Response) => {
       foundAirports.forEach(s => stationMap.set(s.id, s));
     }
 
-    const data = allTrips.map(trip => ({
-      ...trip,
+   const data = allTrips.map(trip => ({
+      ...normalizeTrip(trip),
       departureStation: stationMap.get(trip.departureStationId) || null,
       arrivalStation: stationMap.get(trip.arrivalStationId) || null,
     }));
@@ -59,7 +92,7 @@ router.get("/:id", (req: Request, res: Response) => {
 
     res.json({
       success: true,
-      data: { ...trip, departureStation: depStation || null, arrivalStation: arrStation || null },
+      data: { ...normalizeTrip(trip), departureStation: depStation || null, arrivalStation: arrStation || null },
     });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
@@ -85,16 +118,16 @@ router.post("/", (req: Request, res: Response) => {
       ) ?? data.durationMinutes ?? null,
       distanceKm: (() => {
         if (data.distanceKm != null) return data.distanceKm;
-        const ds = (data.type === "flight" ? seedDb.select().from(airports).where(eq(airports.id, data.departureStationId)).get() : seedDb.select().from(stations).where(eq(stations.id, data.departureStationId)).get()) as any;
-        const as2_ap = (data.type === "flight" ? seedDb.select().from(airports).where(eq(airports.id, data.arrivalStationId)).get() : seedDb.select().from(stations).where(eq(stations.id, data.arrivalStationId)).get()) as any;
-        return computeDistance(ds?.latitude, ds?.longitude, as?.latitude, as?.longitude) ?? data.distanceKm ?? null;
-      })(),
+       const ds = (data.type === "flight" ? seedDb.select().from(airports).where(eq(airports.id, data.departureStationId)).get() : seedDb.select().from(stations).where(eq(stations.id, data.departureStationId)).get()) as any;
+       const as2_ap = (data.type === "flight" ? seedDb.select().from(airports).where(eq(airports.id, data.arrivalStationId)).get() : seedDb.select().from(stations).where(eq(stations.id, data.arrivalStationId)).get()) as any;
+       return computeDistance(ds?.latitude, ds?.longitude, as2_ap?.latitude, as2_ap?.longitude) ?? data.distanceKm ?? null;
+     })(),
       cost: data.cost ?? null, currency: data.currency ?? null,
       seatNumber: data.seatNumber ?? null, seatClass: data.seatClass ?? null,
       notes: data.notes ?? null, createdAt: now, updatedAt: now,
     }).returning().get();
     saveUserDb();
-    res.status(201).json({ success: true, data: result });
+    res.status(201).json({ success: true, data: normalizeTrip(result) });
   } catch (err: any) {
     res.status(400).json({ success: false, error: err.message });
   }
@@ -137,7 +170,7 @@ router.put("/:id", (req: Request, res: Response) => {
 
     const result = userDb.update(trips).set(updateData).where(eq(trips.id, id)).returning().get();
     saveUserDb();
-    res.json({ success: true, data: result });
+    res.json({ success: true, data: normalizeTrip(result) });
   } catch (err: any) {
     res.status(400).json({ success: false, error: err.message });
   }
