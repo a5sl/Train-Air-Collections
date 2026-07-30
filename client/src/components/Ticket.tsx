@@ -101,8 +101,8 @@ function TrainFace({ trip, isHero, className }: { trip: Trip; isHero: boolean; c
   const accent = 'rgb(var(--c-train-line))';
   const depName = trip.departureStation?.name || '?';
   const arrName = trip.arrivalStation?.name || '?';
-  const depCode = trip.departureStation?.code || '';
-  const arrCode = trip.arrivalStation?.code || '';
+  const depCode = (trip.departureStation?.code || '').split('|')[0];
+  const arrCode = (trip.arrivalStation?.code || '').split('|')[0];
 
   return (
     <div
@@ -156,7 +156,7 @@ function TrainFace({ trip, isHero, className }: { trip: Trip; isHero: boolean; c
         </div>
 
         {isHero && (
-          <div className="grid grid-cols-3 sm:grid-cols-6 gap-x-3 gap-y-2 mt-4">
+          <div className="grid grid-cols-2 sm:grid-cols-6 gap-x-3 gap-y-2 mt-4">
             <Field zh="日期" en="DATE" value={trip.departureDate} />
             <Field zh="发车" en="DEPART" value={trip.departureTime} accent />
             <Field zh="到达" en="ARRIVE" value={trip.arrivalTime} />
@@ -203,8 +203,8 @@ function FlightFace({ trip, isHero, className }: { trip: Trip; isHero: boolean; 
   const accent = 'rgb(var(--c-flight-line))';
   const depName = trip.departureStation?.name || '?';
   const arrName = trip.arrivalStation?.name || '?';
-  const depCode = trip.departureStation?.code || depName.slice(0, 3);
-  const arrCode = trip.arrivalStation?.code || arrName.slice(0, 3);
+  const depCode = (trip.departureStation?.code || '').split('|')[0] || depName.slice(0, 3);
+  const arrCode = (trip.arrivalStation?.code || '').split('|')[0] || arrName.slice(0, 3);
 
   return (
     <div
@@ -235,7 +235,7 @@ function FlightFace({ trip, isHero, className }: { trip: Trip; isHero: boolean; 
 
         <div className="flex items-center gap-3">
           <div className="flex-1 min-w-0">
-            <p className={`font-mono font-bold tracking-tight text-content ${isHero ? 'text-4xl' : 'text-2xl'}`}>{depCode}</p>
+            <p className={`font-mono font-bold tracking-tight text-content ${isHero ? 'text-2xl sm:text-4xl' : 'text-xl sm:text-2xl'}`}>{depCode}</p>
             <p className={`text-content-secondary truncate ${isHero ? 'text-xs mt-1' : 'text-[10px] mt-0.5'}`}>{depName}</p>
           </div>
           <div className="flex-shrink-0 flex flex-col items-center px-1" style={{ color: accent }}>
@@ -247,13 +247,13 @@ function FlightFace({ trip, isHero, className }: { trip: Trip; isHero: boolean; 
             {isHero && <span className="text-[9px] font-mono mt-0.5 opacity-70">{formatDuration(trip.durationMinutes)}</span>}
           </div>
           <div className="flex-1 min-w-0 text-right">
-            <p className={`font-mono font-bold tracking-tight text-content ${isHero ? 'text-4xl' : 'text-2xl'}`}>{arrCode}</p>
+            <p className={`font-mono font-bold tracking-tight text-content ${isHero ? 'text-2xl sm:text-4xl' : 'text-xl sm:text-2xl'}`}>{arrCode}</p>
             <p className={`text-content-secondary truncate ${isHero ? 'text-xs mt-1' : 'text-[10px] mt-0.5'}`}>{arrName}</p>
           </div>
         </div>
 
         {isHero && (
-          <div className="grid grid-cols-3 sm:grid-cols-5 gap-x-3 gap-y-2 mt-4">
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-x-3 gap-y-2 mt-4">
             <Field zh="日期" en="DATE" value={trip.departureDate} />
             <Field zh="起飞" en="DEPART" value={trip.departureTime} accent />
             <Field zh="到达" en="ARRIVE" value={trip.arrivalTime} />
@@ -275,7 +275,7 @@ function FlightFace({ trip, isHero, className }: { trip: Trip; isHero: boolean; 
       </div>
       <div
         className="relative z-10 flex flex-col items-center justify-between gap-2 flex-shrink-0"
-        style={{ background: 'rgb(var(--c-flight-line) / 0.07)', width: isHero ? '27%' : 72, minWidth: isHero ? 104 : 72, padding: isHero ? '1.25rem 0.75rem' : '0.75rem 0.5rem' }}
+        style={{ background: 'rgb(var(--c-flight-line) / 0.07)', width: isHero ? undefined : 72, minWidth: isHero ? 80 : 72, maxWidth: isHero ? '27%' : undefined, padding: isHero ? '1.25rem 0.75rem' : '0.75rem 0.5rem' }}
       >
         <p className="font-mono text-[10px] font-semibold tracking-wider" style={{ color: accent }}>
           {trip.trainFlightNumber}

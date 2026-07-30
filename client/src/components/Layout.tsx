@@ -84,9 +84,6 @@ export default function Layout() {
       >
         <div className="relative">
           <Icon className={'w-5 h-5 transition-transform ' + (active ? 'scale-110' : '')} style={{ transitionTimingFunction: 'var(--ease-stamp)' }} />
-          {active && (
-            <span className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-brand animate-stamp-in" />
-          )}
         </div>
         <span>{label}</span>
       </NavLink>

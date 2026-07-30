@@ -34,6 +34,20 @@ export default function TripList() {
   const loadTrips = () => { setLoading(true); api.getTrips().then(setTrips).catch(console.error).finally(() => setLoading(false)); };
   useEffect(() => { loadTrips(); }, []);
 
+  // Restore scroll position after returning from edit
+  useEffect(() => {
+    if (!loading) {
+      const editId = sessionStorage.getItem('tripEditId');
+      if (editId) {
+        sessionStorage.removeItem('tripEditId');
+        sessionStorage.removeItem('tripScroll');
+        requestAnimationFrame(() => {
+          document.getElementById('trip-card-' + editId)?.scrollIntoView({ block: 'center', behavior: 'instant' as ScrollBehavior });
+        });
+      }
+    }
+  }, [loading]);
+
   const handleDelete = async (id: number) => {
     const ok = await confirmDlg({ title: '撕去此行？', message: '行程记录将永久移除，不可复得。', confirmText: '撕去', danger: true });
     if (!ok) return;
@@ -75,7 +89,12 @@ export default function TripList() {
         t.departureStation?.name.toLowerCase().includes(q) || t.arrivalStation?.name.toLowerCase().includes(q) ||
         t.departureStation?.city.toLowerCase().includes(q) || t.arrivalStation?.city.toLowerCase().includes(q));
     })
-    .sort((a, b) => { const da = parseDate(a.departureDate); const db = parseDate(b.departureDate); return sortOrder === 'desc' ? db - da : da - db; });
+    .sort((a, b) => {
+      const da = parseDate(a.departureDate); const db = parseDate(b.departureDate);
+      if (da !== db) return sortOrder === 'desc' ? db - da : da - db;
+      const ta = a.departureTime || ''; const tb = b.departureTime || '';
+      return sortOrder === 'desc' ? tb.localeCompare(ta) : ta.localeCompare(tb);
+    });
 
   function parseDate(s: string): number {
     if (!s) return 0;
@@ -157,21 +176,21 @@ export default function TripList() {
       ) : (
         <div className="relative">
           {/* Timeline rail */}
-          <div className="absolute left-[19px] top-0 bottom-0 w-px bg-line hidden md:block" />
+          <div className="absolute left-[11px] md:left-[19px] top-0 bottom-0 w-px bg-line" />
           <div className="space-y-6">
             {grouped.map(([month, monthTrips]) => (
               <div key={month} className="relative">
                 {/* Month station marker */}
-                <div className="hidden md:flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 rounded-full border-2 border-brand bg-surface flex items-center justify-center flex-shrink-0 z-10">
-                    <span className="text-xs font-display font-bold text-brand">{parseInt(month.split('-')[1])}月</span>
+                <div className="flex items-center gap-2 md:gap-3 mb-3">
+                  <div className="w-6 h-6 md:w-10 md:h-10 rounded-full border-2 border-brand bg-surface flex items-center justify-center flex-shrink-0 z-10">
+                    <span className="text-[9px] md:text-xs font-display font-bold text-brand">{parseInt(month.split('-')[1])}月</span>
                   </div>
                   <span className="font-mono text-xs text-content-tertiary">{month}</span>
                 </div>
-                <div className="space-y-2 md:ml-14">
+                <div className="space-y-2 ml-8 md:ml-14">
                   {monthTrips.map((trip, idx) => (
                     <Reveal key={trip.id} delay={idx * 50}>
-                      <div className={'card p-4 group transition-all hover:shadow-md hover:-translate-y-0.5' + (tearingId === trip.id ? ' tearing' : '')}>
+                      <div id={'trip-card-' + trip.id} className={'card p-4 group transition-all hover:shadow-md hover:-translate-y-0.5' + (tearingId === trip.id ? ' tearing' : '')}>
                         <div className="flex items-start gap-4">
                           <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
                             trip.type === 'train' ? 'bg-brand/10 text-brand' : 'bg-brand/10 text-brand'
@@ -209,7 +228,7 @@ export default function TripList() {
                           </div>
                           <div className="flex flex-col items-end gap-2 flex-shrink-0">
                             {trip.cost && <span className="font-mono text-sm font-semibold text-content">{trip.currency || ''} {trip.cost.toLocaleString()}</span>}
-                            <button onClick={() => navigate('/edit/' + trip.id)} className="opacity-0 group-hover:opacity-100 transition-opacity text-content-tertiary hover:text-brand" title="编辑行程"><Pencil className="w-4 h-4" /></button>
+                            <button onClick={() => { sessionStorage.setItem('tripScroll', String(window.scrollY)); sessionStorage.setItem('tripEditId', String(trip.id)); navigate('/edit/' + trip.id); }} className="opacity-0 group-hover:opacity-100 transition-opacity text-content-tertiary hover:text-brand" title="编辑行程"><Pencil className="w-4 h-4" /></button>
                             <button onClick={() => handleDelete(trip.id)} className="opacity-0 group-hover:opacity-100 transition-opacity text-content-tertiary hover:text-brand"><Trash2 className="w-4 h-4" /></button>
                           </div>
                         </div>

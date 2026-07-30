@@ -618,7 +618,7 @@ export default function EditTrip() {
           <button type="submit" disabled={submitting} className="btn-primary flex-1">
             {submitting ? "保存中..." : "保存修改"}
           </button>
-          <button type="button" onClick={() => navigate("/trips")} className="btn-secondary">
+          <button type="button" onClick={() => navigate(-1)} className="btn-secondary">
             取消
           </button>
         </div>
