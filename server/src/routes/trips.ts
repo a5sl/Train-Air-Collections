@@ -4,6 +4,7 @@ import { trips, stations, airports } from "../db/schema";
 import { eq, desc, sql, inArray } from "drizzle-orm";
 import { and } from "drizzle-orm";
 import { computeDuration, computeDistance } from "../geo";
+import { resolveStationTimezone } from "../timezone";
 
 /** Normalize various date formats to YYYY-MM-DD. */
 function normalizeDate(raw: string): string {
@@ -109,17 +110,22 @@ router.post("/", (req: Request, res: Response) => {
   try {
     const now = new Date().toISOString();
     const data = req.body;
+
+    // Auto-resolve timezone from station when not provided
+    const depTz = data.departureTimezone?.trim() || resolveStationTimezone(data.departureStationId, data.type);
+    const arrTz = data.arrivalTimezone?.trim() || resolveStationTimezone(data.arrivalStationId, data.type);
+
     const result = userDb.insert(trips).values({
       type: data.type, departureDate: normalizeDate(data.departureDate), arrivalDate: normalizeDate(data.arrivalDate),
       departureTime: data.departureTime, arrivalTime: data.arrivalTime,
-      departureTimezone: data.departureTimezone, arrivalTimezone: data.arrivalTimezone,
+      departureTimezone: depTz, arrivalTimezone: arrTz,
       departureStationId: data.departureStationId, arrivalStationId: data.arrivalStationId,
       operator: data.operator, trainFlightNumber: data.trainFlightNumber,
       trainName: data.trainName ?? null, vehicleType: data.vehicleType ?? null,
       vehicleNumber: data.vehicleNumber ?? null, carriageNumber: data.carriageNumber ?? null,
       durationMinutes: computeDuration(
-        data.departureDate, data.departureTime, data.departureTimezone,
-        data.arrivalDate, data.arrivalTime, data.arrivalTimezone
+        data.departureDate, data.departureTime, depTz,
+        data.arrivalDate, data.arrivalTime, arrTz
       ) ?? data.durationMinutes ?? null,
       distanceKm: (() => {
         if (data.distanceKm != null) return data.distanceKm;
@@ -160,7 +166,14 @@ router.put("/:id", (req: Request, res: Response) => {
     const arrTime = updateData.arrivalTime ?? existing.arrivalTime;
     const depTz = updateData.departureTimezone ?? existing.departureTimezone;
     const arrTz = updateData.arrivalTimezone ?? existing.arrivalTimezone;
-    const computed = computeDuration(depDate, depTime, depTz, arrDate, arrTime, arrTz);
+
+    // Auto-resolve empty timezones from station data
+    const finalDepTz = depTz?.trim() || resolveStationTimezone(updateData.departureStationId ?? existing.departureStationId, existing.type as "train" | "flight");
+    const finalArrTz = arrTz?.trim() || resolveStationTimezone(updateData.arrivalStationId ?? existing.arrivalStationId, existing.type as "train" | "flight");
+    updateData.departureTimezone = finalDepTz;
+    updateData.arrivalTimezone = finalArrTz;
+
+    const computed = computeDuration(depDate, depTime, finalDepTz, arrDate, arrTime, finalArrTz);
     if (computed !== null) updateData.durationMinutes = computed;
 
     // Compute distance from station coordinates if not explicitly set

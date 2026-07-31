@@ -49,6 +49,9 @@ export const api = {
   createOperator: (data: { name: string; type: string }) =>
     request<any>("/operators", { method: "POST", body: JSON.stringify(data) }),
 
+  getOperatorByCode: (code: string) =>
+    request<{ id: number; name: string; type: string }>(`/operators/by-code/${encodeURIComponent(code)}`),
+
   seedData: () =>
     request<{ stations: number; operators: number }>("/seed", { method: "POST" }),
 };

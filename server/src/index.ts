@@ -3,8 +3,9 @@ import cors from "cors";
 import { initDb } from "./db/index";
 import tripsRouter from "./routes/trips";
 import stationsRouter from "./routes/stations";
-import { seedStations, seedAirports, seedOperatorsData, getOperators, addOperator, importTripsFromCSV } from "./db/seed";
+import { seedStations, seedAirports, seedOperatorsData, getOperators, addOperator, importTripsFromCSV, populateIataCodes, getOperatorByCode } from "./db/seed";
 import { importByAirFlights } from "./db/import-byair";
+import { migrateTimezones } from "./db/migrate-timezones";
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -32,6 +33,20 @@ app.post("/api/operators", (req, res) => {
     res.status(201).json({ success: true, data: op });
   } catch (e: any) {
     res.status(400).json({ success: false, error: e.message });
+  }
+});
+
+// GET /api/operators/by-code/:code — exact IATA code lookup
+app.get("/api/operators/by-code/:code", (req, res) => {
+  try {
+    const op = getOperatorByCode(req.params.code);
+    if (!op) {
+      res.status(404).json({ success: false, error: "Airline code not found" });
+      return;
+    }
+    res.json({ success: true, data: op });
+  } catch (e: any) {
+    res.status(500).json({ success: false, error: e.message });
   }
 });
 
@@ -84,6 +99,8 @@ app.get("/api/health", (_req, res) => {
 // Start server
 async function start() {
   await initDb();
+  migrateTimezones();
+  populateIataCodes();
   app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
   });

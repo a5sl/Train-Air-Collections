@@ -7,6 +7,7 @@ import { chinaAirports } from "./seed-china-air";
 import { intlAirports } from "./seed-intl-air";
 import { intlRailStations } from "./seed-intl-rail";
 import { seedOperators } from "./seed-operators";
+import { IATA_CODE_MAP } from "./iata-codes";
 import { computeDuration, computeDistance } from "../geo";
 
 // --- Operators CRUD ---
@@ -86,11 +87,45 @@ export function seedOperatorsData(): number {
   const now = new Date().toISOString();
   for (const o of seedOperators) {
     seedDb.insert(operators).values({
-      name: o.name, type: o.type as any, createdAt: now,
+      name: o.name, code: (o as any).code ?? null, type: o.type as any, createdAt: now,
     }).run();
   }
   saveSeedDb();
   return seedOperators.length;
+}
+
+// Reset and populate IATA codes: clear all codes first, then apply verified mappings
+export function populateIataCodes(): number {
+  // Step 1: clear all existing codes to remove any wrong assignments
+  seedDb.update(operators).set({ code: null }).where(sql`${operators.code} IS NOT NULL AND ${operators.code} != ''`).run();
+
+  // Step 2: apply correct codes from the verified map
+  let updated = 0;
+  for (const [code, name] of Object.entries(IATA_CODE_MAP)) {
+    const existing = seedDb.select().from(operators)
+      .where(sql`${operators.name} = ${name} AND (${operators.code} IS NULL OR ${operators.code} = '')`)
+      .get() as any;
+    if (existing) {
+      seedDb.update(operators).set({ code }).where(eq(operators.id, existing.id)).run();
+      updated++;
+    }
+  }
+  saveSeedDb();
+  return updated;
+}
+
+// Look up an operator by exact IATA code
+export function getOperatorByCode(code: string) {
+  const upper = code.toUpperCase();
+  // First try DB lookup
+  const result = seedDb.select().from(operators)
+    .where(sql`${operators.code} = ${upper}`)
+    .get() as Operator | undefined;
+  if (result) return result;
+  // Fallback to static map (covers codes not yet in DB)
+  const name = IATA_CODE_MAP[upper];
+  if (name) return { id: -1, name, type: "airline" as const, createdAt: "" };
+  return null;
 }
 
 // --- CSV Import ---

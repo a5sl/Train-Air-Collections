@@ -22,6 +22,11 @@ export default function OperatorPicker({ label, value, onChange, placeholder, ty
   const ref = useRef<HTMLDivElement>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout>>();
 
+  // Sync internal query when value is changed externally (e.g. auto-fill)
+  useEffect(() => {
+    setQuery(value || "");
+  }, [value]);
+
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (ref.current && !ref.current.contains(e.target as Node)) {
@@ -80,7 +85,7 @@ export default function OperatorPicker({ label, value, onChange, placeholder, ty
           value={query} onChange={handleInput} onFocus={() => { if (query) setOpen(true); }} />
         {value && (
           <button onClick={() => { setQuery(""); onChange(""); }}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-content-secondary hover:text-ink-500">
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-content-secondary hover:text-content">
             <X className="w-3.5 h-3.5" />
           </button>
         )}
@@ -118,7 +123,7 @@ export default function OperatorPicker({ label, value, onChange, placeholder, ty
           )}
           {results.map((o: any) => (
             <div key={o.id} onClick={() => selectOp(o.name)} className="station-option">
-              <span className="font-medium text-ink-800">{o.name}</span>
+              <span className="font-medium text-content">{o.name}</span>
               <span className="text-content-secondary ml-2 text-xs">{o.type === "railway" ? "铁路" : o.type === "airline" ? "航空" : "其他"}</span>
             </div>
           ))}

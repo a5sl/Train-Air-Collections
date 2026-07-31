@@ -5,6 +5,7 @@ import { api } from "../lib/api";
 import { useToast } from "../components/fx/Toast";
 import { useStationSearch } from "../hooks/useStationSearch";
 import { DateField } from "../lib/dateInput";
+import { utcOffsetLabel, getTimezoneOffsetMinutes } from "../lib/timezone";
 import OperatorPicker from "../components/OperatorPicker";
 import type { Station } from "../../../shared/types";
 
@@ -140,8 +141,8 @@ function StationPicker({
   return (
     <div ref={ref} className="relative">
       <label className="label-text">{label}</label>
-      {value ? (
-        <div className="flex items-center gap-2 p-2.5 bg-surface rounded-lg border border-gray-200">
+     {value ? (
+        <div className="flex items-center gap-2 p-2.5 bg-surface rounded-lg border border-line">
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-content truncate">{value.name}</p>
             <p className="text-xs text-content-secondary">{value.city}</p>
@@ -162,8 +163,8 @@ function StationPicker({
               onFocus={() => { if (query) setOpen(true); }}
             />
           </div>
-          {open && (
-            <div className="absolute z-50 mt-1 w-full bg-white rounded-lg border border-gray-200 shadow-lg max-h-60 overflow-y-auto">
+         {open && (
+            <div className="absolute z-50 mt-1 w-full bg-surface rounded-lg border border-line shadow-lg max-h-60 overflow-y-auto">
               {loading && <div className="px-3 py-2 text-sm text-content-tertiary">搜索中...</div>}
               {!loading && results.length === 0 && query && (
                 <div className="px-3 py-2">
@@ -226,28 +227,12 @@ function calcDuration(
 ): number | "" {
   if (!depTime || !arrTime) return "";
 
-  const getOffset = (tz: string, dateStr: string): number => {
-    try {
-      const dt = new Date(dateStr + "T12:00:00Z");
-      const parts = new Intl.DateTimeFormat("en-US", {
-        timeZone: tz, timeZoneName: "longOffset", hour12: false,
-      }).formatToParts(dt);
-      const off = parts.find(p => p.type === "timeZoneName")?.value;
-      if (off && off.startsWith("GMT")) {
-        const sign = off[3] === "-" ? -1 : 1;
-        const [h, m] = off.slice(4).split(":").map(Number);
-        return sign * (h * 60 + (m || 0));
-      }
-    } catch {}
-    return 0;
-  };
-
   // Normalize dates (handle slash format)
   const ndepDate = depDate.replace(/\//g, "-");
   const narrDate = arrDate.replace(/\//g, "-");
 
-  const depOff = getOffset(depTz, ndepDate);
-  const arrOff = getOffset(arrTz, narrDate);
+  const depOff = getTimezoneOffsetMinutes(depTz, ndepDate) ?? 0;
+  const arrOff = getTimezoneOffsetMinutes(arrTz, narrDate) ?? 0;
 
   const [dh, dm] = depTime.split(":").map(Number);
   const [ah, am] = arrTime.split(":").map(Number);
@@ -269,6 +254,9 @@ export default function AddTrip() {
   const [form, setForm] = useState<FormData>(initialForm);
   const [submitting, setSubmitting] = useState(false);
   const [showOptional, setShowOptional] = useState(false);
+  const [operatorAutoFilled, setOperatorAutoFilled] = useState(false);
+  const [autoFillHint, setAutoFillHint] = useState("");
+  const flightTimerRef = useRef<ReturnType<typeof setTimeout>>();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -290,6 +278,40 @@ export default function AddTrip() {
     });
   };
 
+  // Auto-fill airline from flight number IATA prefix
+  const handleFlightNumberChange = (value: string) => {
+    update({ trainFlightNumber: value });
+    setAutoFillHint("");
+    if (flightTimerRef.current) clearTimeout(flightTimerRef.current);
+    if (form.type !== "flight") return;
+
+    const trimmed = value.trim().toUpperCase();
+    const match = trimmed.match(/^([A-Z0-9]{1,2})\d/);
+    if (!match) return;
+    const code = match[1];
+    if (code.length < 2) return;
+
+    flightTimerRef.current = setTimeout(async () => {
+      try {
+        const op = await api.getOperatorByCode(code);
+        if (op && op.name) {
+          let didFill = false;
+          setForm(prev => {
+            if (prev.operator === "" || operatorAutoFilled) {
+              didFill = true;
+              return { ...prev, operator: op.name };
+            }
+            return prev;
+          });
+          if (didFill) {
+            setOperatorAutoFilled(true);
+            setAutoFillHint(`已识别: ${op.name}`);
+          }
+        }
+      } catch { /* code not found, ignore */ }
+    }, 300);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.departureStation || !form.arrivalStation) {
@@ -308,8 +330,8 @@ export default function AddTrip() {
         arrivalDate: form.arrivalDate,
         departureTime: form.departureTime,
         arrivalTime: form.arrivalTime,
-        departureTimezone: form.departureStation?.timezone || "Asia/Shanghai",
-        arrivalTimezone: form.arrivalStation?.timezone || "Asia/Shanghai",
+        departureTimezone: form.departureStation?.timezone || "",
+        arrivalTimezone: form.arrivalStation?.timezone || "",
         departureStationId: form.departureStation.id,
         arrivalStationId: form.arrivalStation.id,
         operator: form.operator,
@@ -384,8 +406,17 @@ export default function AddTrip() {
             </div>
             <div>
               <label className="label-text">出发时区</label>
-              <div className="input-field bg-surface-card-alt text-content-secondary flex items-center">
-                {form.departureStation?.timezone || "— 选择站点后自动填入"}
+              <div className="input-field bg-surface-card-alt flex items-center justify-between gap-2">
+                {form.departureStation?.timezone ? (
+                  <>
+                    <span className="font-mono text-sm font-semibold text-content whitespace-nowrap">
+                      {utcOffsetLabel(form.departureStation.timezone, form.departureDate)}
+                    </span>
+                    <span className="text-xs text-content-tertiary truncate">{form.departureStation.timezone}</span>
+                  </>
+                ) : (
+                  <span className="text-content-secondary">— 选择站点后自动填入</span>
+                )}
               </div>
             </div>
           </div>
@@ -404,8 +435,17 @@ export default function AddTrip() {
             </div>
             <div>
               <label className="label-text">到达时区</label>
-              <div className="input-field bg-surface-card-alt text-content-secondary flex items-center">
-                {form.arrivalStation?.timezone || "— 选择站点后自动填入"}
+              <div className="input-field bg-surface-card-alt flex items-center justify-between gap-2">
+                {form.arrivalStation?.timezone ? (
+                  <>
+                    <span className="font-mono text-sm font-semibold text-content whitespace-nowrap">
+                      {utcOffsetLabel(form.arrivalStation.timezone, form.arrivalDate)}
+                    </span>
+                    <span className="text-xs text-content-tertiary truncate">{form.arrivalStation.timezone}</span>
+                  </>
+                ) : (
+                  <span className="text-content-secondary">— 选择站点后自动填入</span>
+                )}
               </div>
             </div>
           </div>
@@ -439,7 +479,7 @@ export default function AddTrip() {
             <OperatorPicker
               label={form.type === "train" ? "铁路运营方 *" : "航空公司 *"}
               value={form.operator}
-              onChange={(v) => update({ operator: v })}
+              onChange={(v) => { setOperatorAutoFilled(false); setAutoFillHint(""); update({ operator: v }); }}
               placeholder={form.type === "train" ? "如: 中国国铁, JR东日本" : "如: 全日空, 中国国航"}
               typeFilter={form.type as "train" | "flight"}
             />
@@ -448,7 +488,10 @@ export default function AddTrip() {
                 {form.type === "train" ? "车次" : "航班号"} *
               </label>
               <input className="input-field" placeholder={form.type === "train" ? "如: G123" : "如: NH962"}
-                value={form.trainFlightNumber} onChange={e => update({ trainFlightNumber: e.target.value })} required />
+                value={form.trainFlightNumber} onChange={e => handleFlightNumberChange(e.target.value)} required />
+              {autoFillHint && (
+                <p className="text-xs text-brand mt-1">{autoFillHint}</p>
+              )}
             </div>
           </div>
         </div>
