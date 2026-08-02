@@ -1,4 +1,4 @@
-import type { Trip, Station, ApiResponse } from "../../../shared/types";
+import type { Trip, TripImage, Station, ApiResponse } from "../../../shared/types";
 
 const BASE = "/api";
 
@@ -54,4 +54,99 @@ export const api = {
 
   seedData: () =>
     request<{ stations: number; operators: number }>("/seed", { method: "POST" }),
+
+  // ---- Backup & Restore ----
+  downloadBackup: async (): Promise<void> => {
+    const res = await fetch(`${BASE}/backup`);
+    if (!res.ok) {
+      let msg = "Backup download failed";
+      try { const j = await res.json(); if (j?.error) msg = j.error; } catch { /* ignore */ }
+      throw new Error(msg);
+    }
+    const blob = await res.blob();
+    const cd = res.headers.get("Content-Disposition") || "";
+    const m = cd.match(/filename="?([^"]+)"?/);
+    const filename = m?.[1] || "train-air-backup.db";
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  },
+  restoreBackup: (file: File): Promise<{ tripCount: number }> =>
+    new Promise((resolve, reject) => {
+      if (file.size > 6 * 1024 * 1024) {
+        reject(new Error("备份文件过大（上限 6MB）"));
+        return;
+      }
+      const reader = new FileReader();
+      reader.onerror = () => reject(new Error("Failed to read file"));
+      reader.onload = async () => {
+        try {
+          const bytes = new Uint8Array(reader.result as ArrayBuffer);
+          let binary = "";
+          const chunk = 0x8000;
+          for (let i = 0; i < bytes.length; i += chunk) {
+            binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
+          }
+          const dataBase64 = btoa(binary);
+          const result = await request<{ tripCount: number }>("/backup/restore", {
+            method: "POST",
+            body: JSON.stringify({ dataBase64 }),
+          });
+          resolve(result);
+        } catch (e) {
+          reject(e);
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    }),
+  listBackups: () =>
+    request<{ name: string; size: number; modifiedAt: string }[]>("/backup/list"),
+  restoreBackupByName: (name: string) =>
+    request<{ tripCount: number }>(`/backup/restore/${encodeURIComponent(name)}`, {
+      method: "POST",
+    }),
+
+  // ---- Trip Images ----
+  getImages: (tripId: number) => request<TripImage[]>(`/trips/${tripId}/images`),
+  uploadImage: (tripId: number, file: File): Promise<TripImage> =>
+    new Promise((resolve, reject) => {
+      const EXT_MIME: Record<string, string> = {
+        ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png",
+        ".webp": "image/webp", ".gif": "image/gif",
+      };
+      const extMatch = file.name.match(/\.[^.]+$/);
+      const mime = file.type || EXT_MIME[(extMatch?.[0] || "").toLowerCase()] || "";
+      const allowed = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+      if (!allowed.includes(mime)) {
+        reject(new Error("仅支持 jpg/png/webp/gif 格式"));
+        return;
+      }
+      if (file.size > 8 * 1024 * 1024) {
+        reject(new Error("图片过大（上限 8MB）"));
+        return;
+      }
+      const reader = new FileReader();
+      reader.onerror = () => reject(new Error("读取文件失败"));
+      reader.onload = async () => {
+        try {
+          const dataUrl = reader.result as string;
+          const dataBase64 = dataUrl.slice(dataUrl.indexOf(",") + 1);
+          const result = await request<TripImage>(`/trips/${tripId}/images`, {
+            method: "POST",
+            body: JSON.stringify({ dataBase64, mime, originalName: file.name }),
+          });
+          resolve(result);
+        } catch (e) {
+          reject(e);
+        }
+      };
+      reader.readAsDataURL(file);
+    }),
+  deleteImage: (tripId: number, imageId: number) =>
+    request<void>(`/trips/${tripId}/images/${imageId}`, { method: "DELETE" }),
 };

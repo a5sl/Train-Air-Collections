@@ -5,7 +5,9 @@ import { fileURLToPath } from "node:url";
 import cors from "cors";
 import { initDb } from "./db/index";
 import tripsRouter from "./routes/trips";
+import imagesRouter from "./routes/images";
 import stationsRouter from "./routes/stations";
+import backupRouter from "./routes/backup";
 import { seedStations, seedAirports, seedOperatorsData, getOperators, addOperator, importTripsFromCSV, populateIataCodes, getOperatorByCode } from "./db/seed";
 import { importByAirFlights } from "./db/import-byair";
 import { migrateTimezones } from "./db/migrate-timezones";
@@ -14,11 +16,27 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 app.use(cors());
-app.use(express.json({ limit: "10mb" }));
+// Small default JSON limit hardens every non-upload route. The image-upload
+// route (POST /api/trips/:tripId/images) is skipped here and registers its own
+// 15mb parser in routes/images.ts, since 8MB of binary arrives as ~10.7MB of base64.
+app.use(
+  express.json({
+    limit: "1mb",
+    type: (req: any) => {
+      const ct = String(req.headers["content-type"] || "");
+      if (!ct.includes("application/json")) return false;
+      const url = String(req.originalUrl || req.url || "");
+      if (req.method === "POST" && /^\/api\/trips\/[^/?]+\/images(\/|\?|$)/.test(url)) return false;
+      return true;
+    },
+  })
+);
 app.use(express.text({ limit: "10mb", type: "text/csv" }));
 
+app.use("/api/trips", imagesRouter);
 app.use("/api/trips", tripsRouter);
 app.use("/api/stations", stationsRouter);
+app.use("/api/backup", backupRouter);
 
 // ---- Operators ----
 app.get("/api/operators", (req, res) => {
@@ -68,6 +86,28 @@ app.get("/api/airlines/logo/:code", (req, res) => {
     return;
   }
   res.setHeader("Content-Type", "image/png");
+  res.setHeader("Cache-Control", "public, max-age=604800, immutable");
+  res.sendFile(file);
+});
+
+// ---- Trip image uploads (self-hosted static files) ----
+const UPLOADS_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "data", "uploads");
+
+app.get("/api/uploads/:filename", (req, res) => {
+  const name = String(req.params.filename || "");
+  if (!/^[\w-]+\.(jpg|jpeg|png|webp|gif)$/i.test(name)) {
+    res.status(400).json({ success: false, error: "Invalid filename" });
+    return;
+  }
+  const file = path.resolve(UPLOADS_DIR, name);
+  if (!file.startsWith(path.resolve(UPLOADS_DIR) + path.sep)) {
+    res.status(400).json({ success: false, error: "Invalid filename" });
+    return;
+  }
+  if (!fs.existsSync(file)) {
+    res.status(404).json({ success: false, error: "Image not found" });
+    return;
+  }
   res.setHeader("Cache-Control", "public, max-age=604800, immutable");
   res.sendFile(file);
 });

@@ -1,0 +1,188 @@
+import express, { Router } from "express";
+import fs from "node:fs";
+import path from "node:path";
+import crypto from "node:crypto";
+import { userDb, saveUserDb, UPLOADS_DIR } from "../db/index";
+import { tripImages, trips } from "../db/schema";
+import { eq, and, asc, max } from "drizzle-orm";
+
+const router = Router();
+
+const MAX_IMAGE_BYTES = 8 * 1024 * 1024; // 8MB per image
+
+const MIME_EXT: Record<string, string> = {
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+  "image/gif": "gif",
+};
+
+/** Verify the decoded bytes actually match the declared image MIME type. */
+function magicMatches(mime: string, buf: Buffer): boolean {
+  if (mime === "image/jpeg") {
+    return buf.length > 3 && buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff;
+  }
+  if (mime === "image/png") {
+    return buf.length > 8 && buf.readUInt32BE(0) === 0x89504e47 && buf.readUInt32BE(4) === 0x0d0a1a0a;
+  }
+  if (mime === "image/webp") {
+    if (
+      buf.length <= 16 ||
+      buf.subarray(0, 4).toString("ascii") !== "RIFF" ||
+      buf.subarray(8, 12).toString("ascii") !== "WEBP"
+    ) {
+      return false;
+    }
+    const fourcc = buf.subarray(12, 16).toString("ascii");
+    return fourcc === "VP8 " || fourcc === "VP8L" || fourcc === "VP8X";
+  }
+  if (mime === "image/gif") {
+    const head = buf.subarray(0, 6).toString("ascii");
+    return buf.length > 6 && (head === "GIF87a" || head === "GIF89a");
+  }
+  return false;
+}
+
+/** Row -> client shape (shared with the trips router for joined responses). */
+export function imageToApi(row: any) {
+  return {
+    id: row.id,
+    tripId: row.tripId,
+    filename: row.filename,
+    originalName: row.originalName ?? null,
+    mime: row.mime,
+    size: row.size,
+    sortOrder: row.sortOrder,
+    createdAt: row.createdAt,
+    url: "/api/uploads/" + row.filename,
+  };
+}
+
+function tripExists(tripId: number): boolean {
+  return !!userDb.select().from(trips).where(eq(trips.id, tripId)).get();
+}
+
+// GET /api/trips/:tripId/images
+router.get("/:tripId/images", (req, res) => {
+  try {
+    const tripId = parseInt(req.params.tripId);
+    if (!Number.isFinite(tripId)) {
+      res.status(400).json({ success: false, error: "Invalid trip id" });
+      return;
+    }
+    if (!tripExists(tripId)) {
+      res.status(404).json({ success: false, error: "Trip not found" });
+      return;
+    }
+    const rows = userDb
+      .select()
+      .from(tripImages)
+      .where(eq(tripImages.tripId, tripId))
+      .orderBy(asc(tripImages.sortOrder), asc(tripImages.id))
+      .all();
+    res.json({ success: true, data: rows.map(imageToApi) });
+  } catch (e) {
+    console.error("GET images failed:", e);
+    res.status(500).json({ success: false, error: "Failed to load images" });
+  }
+});
+
+// POST /api/trips/:tripId/images — body: { dataBase64, mime, originalName }
+router.post("/:tripId/images", express.json({ limit: "15mb" }), (req, res) => {
+  try {
+    const tripId = parseInt(req.params.tripId);
+    if (!Number.isFinite(tripId) || !tripExists(tripId)) {
+      res.status(404).json({ success: false, error: "Trip not found" });
+      return;
+    }
+    const { dataBase64, mime, originalName } = (req.body ?? {}) as any;
+    if (typeof dataBase64 !== "string" || !dataBase64) {
+      res.status(400).json({ success: false, error: "dataBase64 is required" });
+      return;
+    }
+    if (typeof mime !== "string" || !MIME_EXT[mime]) {
+      res.status(400).json({ success: false, error: "Unsupported image type (jpeg/png/webp/gif only)" });
+      return;
+    }
+    // Reject oversized payloads before decoding (base64 inflates ~33%)
+    if (dataBase64.length > Math.ceil(MAX_IMAGE_BYTES / 3) * 4 + 1024) {
+      res.status(413).json({ success: false, error: "Image too large (max 8MB)" });
+      return;
+    }
+    const buf = Buffer.from(dataBase64, "base64");
+    if (buf.length === 0) {
+      res.status(400).json({ success: false, error: "Empty file" });
+      return;
+    }
+    if (buf.length > MAX_IMAGE_BYTES) {
+      res.status(413).json({ success: false, error: "Image too large (max 8MB)" });
+      return;
+    }
+    if (!magicMatches(mime, buf)) {
+      res.status(400).json({ success: false, error: "File content does not match declared image type" });
+      return;
+    }
+    fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+    const filename = tripId + "-" + crypto.randomUUID() + "." + MIME_EXT[mime];
+    fs.writeFileSync(path.resolve(UPLOADS_DIR, filename), buf);
+    let row: any;
+    try {
+      const maxRow: any = userDb
+        .select({ m: max(tripImages.sortOrder) })
+        .from(tripImages)
+        .where(eq(tripImages.tripId, tripId))
+        .get();
+      const nextOrder = (maxRow?.m ?? -1) + 1;
+      row = userDb
+        .insert(tripImages)
+        .values({
+          tripId,
+          filename,
+          originalName: typeof originalName === "string" ? originalName.trim().slice(0, 255) || null : null,
+          mime,
+          size: buf.length,
+          sortOrder: nextOrder,
+        })
+        .returning()
+        .get();
+      saveUserDb();
+    } catch (dbErr) {
+      try { fs.unlinkSync(path.resolve(UPLOADS_DIR, filename)); } catch { /* ignore */ }
+      throw dbErr;
+    }
+    res.status(201).json({ success: true, data: imageToApi(row) });
+  } catch (e) {
+    console.error("Image upload failed:", e);
+    res.status(400).json({ success: false, error: "Image upload failed" });
+  }
+});
+
+// DELETE /api/trips/:tripId/images/:imageId
+router.delete("/:tripId/images/:imageId", (req, res) => {
+  try {
+    const tripId = parseInt(req.params.tripId);
+    const imageId = parseInt(req.params.imageId);
+    const row: any = userDb
+      .select()
+      .from(tripImages)
+      .where(and(eq(tripImages.id, imageId), eq(tripImages.tripId, tripId)))
+      .get();
+    if (!row) {
+      res.status(404).json({ success: false, error: "Image not found" });
+      return;
+    }
+    userDb.delete(tripImages).where(eq(tripImages.id, imageId)).run();
+    saveUserDb();
+    try {
+      fs.unlinkSync(path.resolve(UPLOADS_DIR, row.filename));
+    } catch {
+      // file may already be gone; metadata removal is the source of truth
+    }
+    res.json({ success: true });
+  } catch (e) {
+    console.error("DELETE image failed:", e);
+    res.status(500).json({ success: false, error: "Failed to delete image" });
+  }
+});
+
+export default router;

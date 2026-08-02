@@ -7,6 +7,7 @@ import { useStationSearch } from "../hooks/useStationSearch";
 import { DateField } from "../lib/dateInput";
 import { utcOffsetLabel, getTimezoneOffsetMinutes } from "../lib/timezone";
 import OperatorPicker from "../components/OperatorPicker";
+import ImageGallery from "../components/ImageGallery";
 import type { Station } from "../../../shared/types";
 
 const TIMEZONES = [
@@ -256,6 +257,7 @@ export default function AddTrip() {
   const [showOptional, setShowOptional] = useState(false);
   const [operatorAutoFilled, setOperatorAutoFilled] = useState(false);
   const [autoFillHint, setAutoFillHint] = useState("");
+  const [createdTripId, setCreatedTripId] = useState<number | null>(null);
   const flightTimerRef = useRef<ReturnType<typeof setTimeout>>();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -324,7 +326,7 @@ export default function AddTrip() {
     }
     setSubmitting(true);
     try {
-      await api.createTrip({
+      const created = await api.createTrip({
         type: form.type,
         departureDate: form.departureDate,
         arrivalDate: form.arrivalDate,
@@ -348,7 +350,8 @@ export default function AddTrip() {
         seatClass: form.seatClass || undefined,
         notes: form.notes || undefined,
       });
-      navigate("/trips");
+      setCreatedTripId(created.id);
+      toast("行程已保存", "ok");
     } catch (err: any) {
       toast("保存失败: " + err.message, 'err');
     } finally {
@@ -356,6 +359,33 @@ export default function AddTrip() {
     }
   };
 
+  if (createdTripId !== null) {
+    return (
+      <div className="max-w-2xl mx-auto space-y-6">
+        <div className="card p-6 text-center space-y-1.5">
+          <h2 className="text-2xl font-display font-bold text-content">行程已保存</h2>
+          <p className="text-sm text-content-secondary">现在可以为这趟行程附上图片，也可以稍后在编辑页补充。</p>
+        </div>
+        <ImageGallery tripId={createdTripId} />
+        <div className="flex gap-3">
+          <button onClick={() => navigate("/trips")} className="btn-primary flex-1">完成</button>
+          <button
+            onClick={() => {
+              setCreatedTripId(null);
+              const today = new Date().toISOString().slice(0, 10);
+              setForm({ ...initialForm, departureDate: today, arrivalDate: today });
+              setShowOptional(false);
+              setOperatorAutoFilled(false);
+              setAutoFillHint("");
+            }}
+            className="btn-secondary"
+          >
+            再录一程
+          </button>
+        </div>
+      </div>
+    );
+  }
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <div>

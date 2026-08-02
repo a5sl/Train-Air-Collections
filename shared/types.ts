@@ -16,6 +16,18 @@ export interface Station {
   createdAt: string;
 }
 
+export interface TripImage {
+  id: number;
+  tripId: number;
+  filename: string;
+  originalName: string | null;
+  mime: string;
+  size: number;
+  sortOrder: number;
+  createdAt: string;
+  url: string;
+}
+
 export interface Trip {
   id: number;
   type: TransportType;
@@ -45,6 +57,7 @@ export interface Trip {
   // Joined fields
   departureStation?: Station;
   arrivalStation?: Station;
+  images?: TripImage[];
 }
 
 export interface TripCreateInput {

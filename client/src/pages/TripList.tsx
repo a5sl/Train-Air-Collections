@@ -1,11 +1,12 @@
-import React, { useEffect, useState, useRef } from 'react';
-import { Train, Plane, Clock, MapPin, Trash2, ChevronRight, Search, Upload, Database, Pencil, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import React, { useEffect, useMemo, useState, useRef } from 'react';
+import { Train, Plane, Clock, MapPin, Trash2, ChevronRight, Search, Upload, Database, Pencil, ArrowUpDown, ArrowUp, ArrowDown, Camera } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
 import type { Trip } from '../../../shared/types';
 import Reveal from '../components/Reveal';
 import Segmented from '../components/Segmented';
 import TrajectorySVG from '../components/TrajectorySVG';
+import BackupPopover from '../components/BackupPopover';
 import { useToast } from '../components/fx/Toast';
 import TrainLoader from '../components/fx/TrainLoader';
 
@@ -138,6 +139,7 @@ export default function TripList() {
           <button onClick={() => fileRef.current?.click()} disabled={importing} className="btn-secondary text-xs">
             <Upload className="w-3.5 h-3.5" />{importing ? '导入中...' : '导入CSV'}
           </button>
+          <BackupPopover onRestored={loadTrips} />
         </div>
       </div>
 
@@ -203,6 +205,12 @@ export default function TripList() {
                               <span className="text-xs px-1.5 py-0.5 rounded bg-brand-tint text-brand">
                                 {trip.type === 'train' ? '铁轨' : '云路'}
                               </span>
+                              {(trip.images?.length ?? 0) > 0 && (
+                                <span className="text-xs px-1.5 py-0.5 rounded bg-brand-tint text-brand flex items-center gap-0.5">
+                                  <Camera className="w-3 h-3" />
+                                  {trip.images!.length}
+                                </span>
+                              )}
                               <span className="text-sm text-content-secondary">{trip.operator}</span>
                             </div>
                             <div className="mt-1.5 flex items-center gap-2 text-sm text-content flex-wrap">
@@ -243,8 +251,4 @@ export default function TripList() {
       )}
     </div>
   );
-}
-
-function useMemo<T>(fn: () => T, deps: any[]): T {
-  return React.useMemo(fn, deps);
 }

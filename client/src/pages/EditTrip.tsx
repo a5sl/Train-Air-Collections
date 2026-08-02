@@ -7,6 +7,7 @@ import { useStationSearch } from "../hooks/useStationSearch";
 import { DateField } from "../lib/dateInput";
 import { utcOffsetLabel, getTimezoneOffsetMinutes } from "../lib/timezone";
 import OperatorPicker from "../components/OperatorPicker";
+import ImageGallery from "../components/ImageGallery";
 import type { Station } from "../../../shared/types";
 
 const TIMEZONES = [
@@ -667,6 +668,12 @@ export default function EditTrip() {
           </button>
         </div>
       </form>
+
+      {id && !loading && Number.isFinite(parseInt(id)) && (
+        <div className="pt-2">
+          <ImageGallery tripId={parseInt(id)} />
+        </div>
+      )}
     </div>
   );
 }

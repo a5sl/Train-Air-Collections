@@ -1,7 +1,10 @@
 import { Router, Request, Response } from "express";
-import { seedDb, userDb, saveUserDb } from "../db/index";
-import { trips, stations, airports } from "../db/schema";
-import { eq, desc, sql, inArray } from "drizzle-orm";
+import fs from "node:fs";
+import path from "node:path";
+import { seedDb, userDb, saveUserDb, UPLOADS_DIR } from "../db/index";
+import { trips, stations, airports, tripImages } from "../db/schema";
+import { eq, desc, sql, inArray, asc } from "drizzle-orm";
+import { imageToApi } from "./images";
 import { and } from "drizzle-orm";
 import { computeDuration, computeDistance } from "../geo";
 import { resolveStationTimezone } from "../timezone";
@@ -72,12 +75,26 @@ router.get("/", (_req: Request, res: Response) => {
         .forEach(s => airportMap.set(s.id, s));
     }
 
+    // Batch-fetch attached images
+    const imagesByTrip = new Map<number, any[]>();
+    if (allTrips.length > 0) {
+      const imgRows = userDb.select().from(tripImages)
+        .where(inArray(tripImages.tripId, allTrips.map(t => t.id)))
+        .orderBy(asc(tripImages.sortOrder), asc(tripImages.id)).all();
+      for (const img of imgRows) {
+        const list = imagesByTrip.get(img.tripId) ?? [];
+        list.push(img);
+        imagesByTrip.set(img.tripId, list);
+      }
+    }
+
     const data = allTrips.map(trip => {
       const map = trip.type === 'flight' ? airportMap : stationMap;
       return {
         ...normalizeTrip(trip),
         departureStation: map.get(trip.departureStationId) || null,
         arrivalStation: map.get(trip.arrivalStationId) || null,
+        images: (imagesByTrip.get(trip.id) ?? []).map(imageToApi),
       };
     });
 
@@ -96,9 +113,13 @@ router.get("/:id", (req: Request, res: Response) => {
     const depStation = trip.type === "flight" ? seedDb.select().from(airports).where(eq(airports.id, trip.departureStationId)).get() : seedDb.select().from(stations).where(eq(stations.id, trip.departureStationId)).get();
     const arrStation = trip.type === "flight" ? seedDb.select().from(airports).where(eq(airports.id, trip.arrivalStationId)).get() : seedDb.select().from(stations).where(eq(stations.id, trip.arrivalStationId)).get();
 
+    const tripImagesList = userDb.select().from(tripImages)
+      .where(eq(tripImages.tripId, trip.id))
+      .orderBy(asc(tripImages.sortOrder), asc(tripImages.id)).all();
+
     res.json({
       success: true,
-      data: { ...normalizeTrip(trip), departureStation: depStation || null, arrivalStation: arrStation || null },
+      data: { ...normalizeTrip(trip), departureStation: depStation || null, arrivalStation: arrStation || null, images: tripImagesList.map(imageToApi) },
     });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
@@ -198,12 +219,21 @@ router.put("/:id", (req: Request, res: Response) => {
 router.delete("/:id", (req: Request, res: Response) => {
   try {
     const id = parseInt(req.params.id);
-    const result = userDb.delete(trips).where(eq(trips.id, id)).run();
-    if (result.changes === 0) {
+    const existing = userDb.select().from(trips).where(eq(trips.id, id)).get();
+    if (!existing) {
       res.status(404).json({ success: false, error: "Trip not found" });
       return;
     }
+    const imgs = userDb.select().from(tripImages).where(eq(tripImages.tripId, id)).all() as any[];
+    userDb.delete(trips).where(eq(trips.id, id)).run();
+    if (imgs.length > 0) {
+      userDb.delete(tripImages).where(eq(tripImages.tripId, id)).run();
+    }
     saveUserDb();
+    // Unlink files only after the DB write succeeds; orphans are reconciled at startup
+    for (const img of imgs) {
+      try { fs.unlinkSync(path.resolve(UPLOADS_DIR, img.filename)); } catch { /* ignore */ }
+    }
     res.json({ success: true });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });

@@ -70,4 +70,15 @@ export const trips = sqliteTable("trips", {
   updatedAt: text("updated_at").default(sql`(datetime('now'))`).notNull(),
 });
 
-export const userSchema = { trips };
+export const tripImages = sqliteTable("trip_images", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  tripId: integer("trip_id").notNull(),
+  filename: text("filename").notNull(),
+  originalName: text("original_name"),
+  mime: text("mime").notNull(),
+  size: integer("size").notNull(),
+  sortOrder: integer("sort_order").notNull().default(0),
+  createdAt: text("created_at").default(sql`(datetime('now'))`).notNull(),
+});
+
+export const userSchema = { trips, tripImages };

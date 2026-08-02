@@ -21,6 +21,10 @@ rail_airport_stat/
 # User database (contains personal trips, not for version control)
 server/data/user.db
 server/data/*.bak
+server/data/backups/
+
+# User-uploaded trip images
+server/data/uploads/
 
 # Logs
 *.log
