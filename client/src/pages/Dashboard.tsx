@@ -2,7 +2,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Train, Plane, Clock, MapPin, BarChart3, Plus,
-  Star, Navigation, Calendar, DollarSign,
+  Star, Navigation, Calendar, DollarSign, BookOpen,
 } from 'lucide-react';
 import { api } from '../lib/api';
 import type { Trip } from '../../../shared/types';
@@ -119,7 +119,10 @@ export default function Dashboard() {
       <Reveal>
         <div className="flex items-center justify-between">
           <div><h2 className="text-2xl font-display font-bold text-content tracking-tight">行旅录</h2><p className="text-sm text-content-secondary mt-1">铁轨纵横，云路万里</p></div>
-          <Magnetic><button onClick={() => navigate('/add')} className="btn-primary"><Plus className="w-4 h-4" />录新程</button></Magnetic>
+          <div className="flex items-center gap-2">
+            <Magnetic><button onClick={() => navigate('/report')} className="btn-secondary"><BookOpen className="w-4 h-4" />岁末年鉴</button></Magnetic>
+            <Magnetic><button onClick={() => navigate('/add')} className="btn-primary"><Plus className="w-4 h-4" />录新程</button></Magnetic>
+          </div>
         </div>
       </Reveal>
 

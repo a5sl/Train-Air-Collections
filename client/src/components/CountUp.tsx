@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { prefersReducedMotion } from '../lib/motion';
 
 export default function CountUp({
   value,
@@ -18,6 +19,14 @@ export default function CountUp({
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
+    // Reset when `value` changes so year/metric switches re-animate
+    started.current = false;
+    if (prefersReducedMotion()) {
+      setDisplay(value);
+      return;
+    }
+    setDisplay(0);
+    let raf = 0;
     const obs = new IntersectionObserver(([entry]) => {
       if (entry.isIntersecting && !started.current) {
         started.current = true;
@@ -28,14 +37,14 @@ export default function CountUp({
           const t = Math.min((now - start) / duration, 1);
           const eased = 1 - Math.pow(1 - t, 3);
           setDisplay(Math.round(from + (to - from) * eased));
-          if (t < 1) requestAnimationFrame(tick);
+          if (t < 1) raf = requestAnimationFrame(tick);
         };
-        requestAnimationFrame(tick);
+        raf = requestAnimationFrame(tick);
         obs.unobserve(el);
       }
     }, { threshold: 0.3 });
     obs.observe(el);
-    return () => obs.disconnect();
+    return () => { obs.disconnect(); if (raf) cancelAnimationFrame(raf); };
   }, [value, duration]);
 
   const text = format ? format(display) : display.toLocaleString();
