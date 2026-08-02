@@ -2,6 +2,7 @@
 import { Train, Plane } from 'lucide-react';
 import TrajectorySVG from './TrajectorySVG';
 import Seal from './Seal';
+import AirlineLogo from './AirlineLogo';
 import { prefersReducedMotion, isCoarsePointer } from '../lib/motion';
 import type { Trip } from '../../../shared/types';
 
@@ -216,6 +217,7 @@ function FlightFace({ trip, isHero, className }: { trip: Trip; isHero: boolean; 
       <div className={`relative z-10 flex-1 min-w-0 ${isHero ? 'p-6' : 'p-4'}`}>
         <div className="flex items-center justify-between gap-2 mb-3">
           <div className="flex items-center gap-2 min-w-0">
+            <AirlineLogo flightNumber={trip.trainFlightNumber} operator={trip.operator} size={isHero ? 28 : 20} />
             <span
               className="font-mono text-sm font-bold px-2 py-0.5 rounded border tracking-wide flex-shrink-0"
               style={{ color: accent, borderColor: 'rgb(var(--c-flight-line) / 0.45)', background: 'rgb(var(--c-flight-line) / 0.1)' }}

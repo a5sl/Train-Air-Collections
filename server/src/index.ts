@@ -1,4 +1,7 @@
 import express from "express";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import cors from "cors";
 import { initDb } from "./db/index";
 import tripsRouter from "./routes/trips";
@@ -48,6 +51,25 @@ app.get("/api/operators/by-code/:code", (req, res) => {
   } catch (e: any) {
     res.status(500).json({ success: false, error: e.message });
   }
+});
+
+// ---- Airline logos (self-hosted static files) ----
+const AIRLINE_LOGO_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "data", "airline-logos");
+
+app.get("/api/airlines/logo/:code", (req, res) => {
+  const code = String(req.params.code || "").toUpperCase().replace(/\.png$/i, "");
+  if (!/^[A-Z0-9]{2,3}$/.test(code)) {
+    res.status(400).json({ success: false, error: "Invalid airline code" });
+    return;
+  }
+  const file = path.join(AIRLINE_LOGO_DIR, code + ".png");
+  if (!fs.existsSync(file)) {
+    res.status(404).json({ success: false, error: "Logo not found" });
+    return;
+  }
+  res.setHeader("Content-Type", "image/png");
+  res.setHeader("Cache-Control", "public, max-age=604800, immutable");
+  res.sendFile(file);
 });
 
 // ---- Seed (manual trigger) ----
