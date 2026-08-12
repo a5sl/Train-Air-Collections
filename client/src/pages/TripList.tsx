@@ -10,6 +10,7 @@ import TrajectorySVG from '../components/TrajectorySVG';
 import BackupPopover from '../components/BackupPopover';
 import { useToast } from '../components/fx/Toast';
 import TrainLoader from '../components/fx/TrainLoader';
+import AirlineLogo from '../components/AirlineLogo';
 
 export default function TripList() {
   const { trips, setTrips, loading, reload: loadTrips } = useTrips();
@@ -191,11 +192,13 @@ export default function TripList() {
                     <Reveal key={trip.id} delay={idx * 50}>
                       <div id={'trip-card-' + trip.id} className={'card p-4 group transition-all hover:shadow-md hover:-translate-y-0.5' + (tearingId === trip.id ? ' tearing' : '')}>
                         <div className="flex items-start gap-4">
-                          <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                            trip.type === 'train' ? 'bg-brand/10 text-brand' : 'bg-brand/10 text-brand'
-                          }`}>
-                            {trip.type === 'train' ? <Train className="w-5 h-5" /> : <Plane className="w-5 h-5" />}
-                          </div>
+                          {trip.type === 'train' ? (
+                            <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 bg-brand/10 text-brand">
+                              <Train className="w-5 h-5" />
+                            </div>
+                          ) : (
+                            <AirlineLogo flightNumber={trip.trainFlightNumber} operator={trip.operator} size={40} />
+                          )}
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
                               <span className="font-mono font-semibold text-content">{trip.trainFlightNumber}</span>

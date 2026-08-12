@@ -66,6 +66,9 @@ export const trips = sqliteTable("trips", {
   seatNumber: text("seat_number"),
   seatClass: text("seat_class"),
   notes: text("notes"),
+  isCodeshare: integer("is_codeshare").notNull().default(0),
+  operatingCarrier: text("operating_carrier"),
+  operatingFlightNumber: text("operating_flight_number"),
   createdAt: text("created_at").default(sql`(datetime('now'))`).notNull(),
   updatedAt: text("updated_at").default(sql`(datetime('now'))`).notNull(),
 });

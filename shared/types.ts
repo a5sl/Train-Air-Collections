@@ -45,6 +45,9 @@ export interface Trip {
   vehicleType: string | null;   // e.g., "CRH2A", "B787-9"
   vehicleNumber: string | null; // e.g., "CRH2A-2158"
   carriageNumber: string | null; // e.g., "2" (车厢号)
+  isCodeshare: boolean;
+  operatingCarrier: string | null;       // 实际承运人
+  operatingFlightNumber: string | null;  // 实际承运航班号
   durationMinutes: number | null;
   distanceKm: number | null;
   cost: number | null;
@@ -78,6 +81,9 @@ export interface TripCreateInput {
   vehicleType?: string;
   vehicleNumber?: string;
   carriageNumber?: string;
+  isCodeshare?: boolean;
+  operatingCarrier?: string;
+  operatingFlightNumber?: string;
   durationMinutes?: number;
   distanceKm?: number;
   cost?: number;

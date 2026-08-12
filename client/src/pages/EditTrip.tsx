@@ -35,6 +35,9 @@ interface FormData {
   vehicleType: string;
   vehicleNumber: string;
   carriageNumber: string;
+  isCodeshare: boolean;
+  operatingCarrier: string;
+  operatingFlightNumber: string;
   durationMinutes: number | "";
   distanceKm: number | "";
   cost: number | "";
@@ -260,6 +263,9 @@ export default function EditTrip() {
   const [operatorAutoFilled, setOperatorAutoFilled] = useState(false);
   const [autoFillHint, setAutoFillHint] = useState("");
   const flightTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  const opFlightTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  const [operatingAutoFilled, setOperatingAutoFilled] = useState(false);
+  const [operatingAutoFillHint, setOperatingAutoFillHint] = useState("");
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -282,6 +288,9 @@ export default function EditTrip() {
           vehicleType: trip.vehicleType || "",
           vehicleNumber: trip.vehicleNumber || "",
           carriageNumber: trip.carriageNumber || "",
+          isCodeshare: trip.isCodeshare || false,
+          operatingCarrier: trip.operatingCarrier || "",
+          operatingFlightNumber: trip.operatingFlightNumber || "",
           durationMinutes: trip.durationMinutes ?? "",
           distanceKm: trip.distanceKm ?? "",
           cost: trip.cost ?? "",
@@ -360,6 +369,42 @@ export default function EditTrip() {
     }, 300);
   };
 
+  // Auto-fill operating airline from operating flight number IATA prefix
+  const handleOperatingFlightNumberChange = (value: string) => {
+    update({ operatingFlightNumber: value });
+    setOperatingAutoFillHint("");
+    if (opFlightTimerRef.current) clearTimeout(opFlightTimerRef.current);
+    if (!form || form.type !== "flight") return;
+
+    const trimmed = value.trim().toUpperCase();
+    const match = trimmed.match(/^([A-Z0-9]{1,2})\d/);
+    if (!match) return;
+    const code = match[1];
+    if (code.length < 2) return;
+
+    opFlightTimerRef.current = setTimeout(async () => {
+      try {
+        const op = await api.getOperatorByCode(code);
+        if (op && op.name) {
+          let didFill = false;
+          setForm(prev => {
+            if (!prev) return prev;
+            if (prev.operatingCarrier === "" || operatingAutoFilled) {
+              didFill = true;
+              return { ...prev, operatingCarrier: op.name };
+            }
+            return prev;
+          });
+          if (didFill) {
+            setOperatingAutoFilled(true);
+            setOperatingAutoFillHint(`已识别: ${op.name}`);
+          }
+        }
+      } catch { /* code not found, ignore */ }
+    }, 300);
+  };
+
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form || !id) return;
@@ -389,6 +434,9 @@ export default function EditTrip() {
         vehicleType: form.vehicleType || undefined,
         vehicleNumber: form.vehicleNumber || undefined,
         carriageNumber: form.carriageNumber || undefined,
+        isCodeshare: form.isCodeshare,
+        operatingCarrier: form.operatingCarrier || undefined,
+        operatingFlightNumber: form.operatingFlightNumber || undefined,
         durationMinutes: form.durationMinutes || undefined,
         distanceKm: form.distanceKm || undefined,
         cost: form.cost || undefined,
@@ -560,6 +608,43 @@ export default function EditTrip() {
               )}
             </div>
           </div>
+
+          {form.type === "flight" && (
+            <div className="space-y-3 pt-1">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={form.isCodeshare}
+                  onChange={e => update({ isCodeshare: e.target.checked })}
+                  className="w-4 h-4 rounded border-line text-brand focus:ring-brand"
+                />
+                <span className="text-sm text-content-secondary">共享航班（由其他航司实际执飞）</span>
+              </label>
+              {form.isCodeshare && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pl-6">
+                  <OperatorPicker
+                    label="实际承运人"
+                    value={form.operatingCarrier}
+                    onChange={(v) => { setOperatingAutoFilled(false); setOperatingAutoFillHint(""); update({ operatingCarrier: v }); }}
+                    placeholder="如: 深圳航空"
+                    typeFilter="flight"
+                  />
+                  <div>
+                    <label className="label-text">实际承运航班号</label>
+                    <input
+                      className="input-field"
+                      placeholder="如: ZH1234"
+                      value={form.operatingFlightNumber}
+                      onChange={e => handleOperatingFlightNumberChange(e.target.value)} />
+                    {operatingAutoFillHint && (
+                      <p className="text-xs text-brand mt-1">{operatingAutoFillHint}</p>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
         </div>
 
         {/* Optional fields toggle */}

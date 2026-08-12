@@ -75,10 +75,32 @@ export async function initDb() {
         seat_number TEXT,
         seat_class TEXT,
         notes TEXT,
+        is_codeshare INTEGER DEFAULT 0 NOT NULL,
+        operating_carrier TEXT,
+        operating_flight_number TEXT,
         created_at TEXT DEFAULT (datetime('now')) NOT NULL,
         updated_at TEXT DEFAULT (datetime('now')) NOT NULL
       )
     `);
+    saveUserDb();
+  }
+
+  // Migrate existing trips table: add codeshare columns if missing
+  const tripsCols = userSqlDb.exec("PRAGMA table_info(trips)");
+  const tripColNames = new Set((tripsCols[0]?.values ?? []).map((r: any[]) => String(r[1])));
+  if (!tripColNames.has("is_codeshare")) {
+    console.log("Migrating trips: adding is_codeshare column...");
+    userSqlDb.run("ALTER TABLE trips ADD COLUMN is_codeshare INTEGER DEFAULT 0 NOT NULL");
+  }
+  if (!tripColNames.has("operating_carrier")) {
+    console.log("Migrating trips: adding operating_carrier column...");
+    userSqlDb.run("ALTER TABLE trips ADD COLUMN operating_carrier TEXT");
+  }
+  if (!tripColNames.has("operating_flight_number")) {
+    console.log("Migrating trips: adding operating_flight_number column...");
+    userSqlDb.run("ALTER TABLE trips ADD COLUMN operating_flight_number TEXT");
+  }
+  if (!tripColNames.has("is_codeshare") || !tripColNames.has("operating_carrier") || !tripColNames.has("operating_flight_number")) {
     saveUserDb();
   }
 
