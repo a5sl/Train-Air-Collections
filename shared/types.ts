@@ -58,6 +58,8 @@ export interface Trip {
   departureStation?: Station;
   arrivalStation?: Station;
   images?: TripImage[];
+  /** Present in list responses (GET /api/trips); full images load lazily. */
+  imageCount?: number;
 }
 
 export interface TripCreateInput {

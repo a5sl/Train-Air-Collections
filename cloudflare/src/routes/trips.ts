@@ -1,7 +1,8 @@
 import { Hono } from "hono";
-import { eq, desc, inArray, asc, and } from "drizzle-orm";
+import { eq, desc, inArray, asc, and, count } from "drizzle-orm";
 import { trips, stations, airports, tripImages } from "../db/schema";
 import { getDbs } from "../db";
+import { cacheGet, cacheSet, cacheDelete } from "../cache";
 import { imageToApi } from "./images";
 import { computeDuration, computeDistance } from "../geo";
 import { resolveStationTimezone } from "../timezone";
@@ -63,6 +64,10 @@ router.get("/", async (c) => {
   try {
     const db = getDbs(c.env);
     const owner = getUser(c).email;
+
+    const cached = await cacheGet<{ success: true; data: unknown[] }>(owner, "/api/trips");
+    if (cached) return c.json(cached);
+
     const allTrips = await db.user.select().from(trips)
       .where(eq(trips.owner, owner))
       .orderBy(desc(trips.departureDate), desc(trips.id)).all();
@@ -84,17 +89,17 @@ router.get("/", async (c) => {
         .forEach((s) => airportMap.set(s.id, s));
     }
 
-    const imagesByTrip = new Map<number, any[]>();
+    // Only ship per-trip image counts in the list payload; full images load
+    // lazily via GET /trips/:tripId/images or /trips/photos.
+    const imageCounts = new Map<number, number>();
     if (allTrips.length > 0) {
       for (const group of chunk(allTrips.map((t) => t.id), 90)) {
-        const imgRows = await db.user.select().from(tripImages)
+        const rows = await db.user.select({ tripId: tripImages.tripId, c: count() })
+          .from(tripImages)
           .where(inArray(tripImages.tripId, group))
-          .orderBy(asc(tripImages.sortOrder), asc(tripImages.id)).all();
-        for (const img of imgRows) {
-          const list = imagesByTrip.get(img.tripId) ?? [];
-          list.push(img);
-          imagesByTrip.set(img.tripId, list);
-        }
+          .groupBy(tripImages.tripId)
+          .all();
+        for (const row of rows) imageCounts.set(row.tripId, row.c);
       }
     }
 
@@ -104,11 +109,13 @@ router.get("/", async (c) => {
         ...normalizeTrip(trip),
         departureStation: map.get(trip.departureStationId) || null,
         arrivalStation: map.get(trip.arrivalStationId) || null,
-        images: (imagesByTrip.get(trip.id) ?? []).map(imageToApi),
+        imageCount: imageCounts.get(trip.id) ?? 0,
       };
     });
 
-    return c.json({ success: true, data });
+    const payload = { success: true, data };
+    await cacheSet(owner, "/api/trips", payload, 60);
+    return c.json(payload);
   } catch (err: any) {
     return c.json({ success: false, error: err.message }, 500);
   }
@@ -119,8 +126,13 @@ router.get("/:id", async (c) => {
   try {
     const db = getDbs(c.env);
     const owner = getUser(c).email;
+    const id = parseInt(c.req.param("id"));
+
+    const cached = await cacheGet<{ success: true; data: unknown }>(owner, `/api/trips/${id}`);
+    if (cached) return c.json(cached);
+
     const trip = await db.user.select().from(trips)
-      .where(and(eq(trips.id, parseInt(c.req.param("id"))), eq(trips.owner, owner))).get() as any;
+      .where(and(eq(trips.id, id), eq(trips.owner, owner))).get() as any;
     if (!trip) return c.json({ success: false, error: "Trip not found" }, 404);
 
     const depStation = trip.type === "flight" ? await db.seed.select().from(airports).where(eq(airports.id, trip.departureStationId)).get() : await db.seed.select().from(stations).where(eq(stations.id, trip.departureStationId)).get();
@@ -130,10 +142,12 @@ router.get("/:id", async (c) => {
       .where(eq(tripImages.tripId, trip.id))
       .orderBy(asc(tripImages.sortOrder), asc(tripImages.id)).all();
 
-    return c.json({
+    const payload = {
       success: true,
-      data: { ...normalizeTrip(trip), departureStation: depStation || null, arrivalStation: arrStation || null, images: tripImagesList.map(imageToApi) },
-    });
+      data: { ...normalizeTrip(trip), departureStation: depStation || null, arrivalStation: arrStation || null, images: tripImagesList.map(imageToApi), imageCount: tripImagesList.length },
+    };
+    await cacheSet(owner, `/api/trips/${id}`, payload, 60);
+    return c.json(payload);
   } catch (err: any) {
     return c.json({ success: false, error: err.message }, 500);
   }
@@ -174,6 +188,7 @@ router.post("/", async (c) => {
       seatNumber: data.seatNumber ?? null, seatClass: data.seatClass ?? null,
       notes: data.notes ?? null, owner, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
     }).returning().get();
+    await cacheDelete(owner, ["/api/trips"]);
     return c.json({ success: true, data: normalizeTrip(result) }, 201);
   } catch (err: any) {
     return c.json({ success: false, error: err.message }, 400);
@@ -223,6 +238,7 @@ router.put("/:id", async (c) => {
 
     const result = await db.user.update(trips).set(updateData)
       .where(and(eq(trips.id, id), eq(trips.owner, owner))).returning().get();
+    await cacheDelete(owner, ["/api/trips", `/api/trips/${id}`]);
     return c.json({ success: true, data: normalizeTrip(result) });
   } catch (err: any) {
     return c.json({ success: false, error: err.message }, 400);
@@ -245,6 +261,7 @@ router.delete("/:id", async (c) => {
     for (const img of imgs) {
       try { await deleteUpload(c.env, owner, img.filename); } catch { /* ignore */ }
     }
+    await cacheDelete(owner, ["/api/trips", `/api/trips/${id}`]);
     return c.json({ success: true });
   } catch (err: any) {
     return c.json({ success: false, error: err.message }, 500);
@@ -259,6 +276,7 @@ router.post("/import-csv", async (c) => {
     const csvText = await c.req.text();
     if (!csvText) return c.json({ success: false, error: "No CSV data provided" }, 400);
     const result = await importTripsFromCSV(db, csvText, owner);
+    await cacheDelete(owner, ["/api/trips"]);
     return c.json({ success: true, data: result });
   } catch (err: any) {
     return c.json({ success: false, error: err.message }, 400);

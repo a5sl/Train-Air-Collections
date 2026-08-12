@@ -2,6 +2,22 @@ import type { Trip, TripImage, Station, ApiResponse } from "../../../shared/type
 
 const BASE = "/api";
 
+// ---- Shared trips cache (SWR-lite) ----
+// Pages read from this module-level cache instead of hitting /api/trips on every
+// mount. Writes invalidate it so the next page that needs trips refetches once.
+let tripsCache: Trip[] | null = null;
+let tripsPromise: Promise<Trip[]> | null = null;
+
+export function getCachedTrips(): Trip[] | null {
+  return tripsCache;
+}
+
+/** Drop the cached trip list so the next reader refetches from the server. */
+export function invalidateTrips() {
+  tripsCache = null;
+  tripsPromise = null;
+}
+
 async function request<T>(url: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`${BASE}${url}`, {
     headers: { "Content-Type": "application/json" },
@@ -24,20 +40,51 @@ export class AuthError extends Error {
 
 export const api = {
   getMe: () => request<{ email: string }>("/me"),
-  getTrips: () => request<Trip[]>("/trips"),
-  getTrip: (id: number) => request<Trip>(`/trips/${id}`),
+  getTrips: () => {
+    if (!tripsPromise) {
+      tripsPromise = request<Trip[]>("/trips")
+        .then((data) => {
+          tripsCache = data;
+          return data;
+        })
+        .finally(() => {
+          tripsPromise = null;
+        });
+    }
+    return tripsPromise;
+  },
+  getTrip: (id: number) => {
+    const cached = tripsCache?.find((t) => t.id === id);
+    if (cached) return Promise.resolve(cached);
+    return request<Trip>(`/trips/${id}`);
+  },
   createTrip: (data: Partial<Trip>) =>
-    request<Trip>("/trips", { method: "POST", body: JSON.stringify(data) }),
+    request<Trip>("/trips", { method: "POST", body: JSON.stringify(data) })
+      .then((t) => {
+        invalidateTrips();
+        return t;
+      }),
   updateTrip: (id: number, data: Partial<Trip>) =>
-    request<Trip>(`/trips/${id}`, { method: "PUT", body: JSON.stringify(data) }),
+    request<Trip>(`/trips/${id}`, { method: "PUT", body: JSON.stringify(data) })
+      .then((t) => {
+        invalidateTrips();
+        return t;
+      }),
   deleteTrip: (id: number) =>
-    request<void>(`/trips/${id}`, { method: "DELETE" }),
+    request<void>(`/trips/${id}`, { method: "DELETE" })
+      .then(() => {
+        invalidateTrips();
+      }),
   importTripsCSV: (csv: string) =>
     request<{ imported: number; errors: string[] }>("/trips/import-csv", {
       method: "POST",
       headers: { "Content-Type": "text/csv" },
       body: csv,
-    }),
+    })
+      .then((r) => {
+        invalidateTrips();
+        return r;
+      }),
 
   getStations: (q?: string, type?: string) => {
     const params = new URLSearchParams();
@@ -108,6 +155,7 @@ export const api = {
             method: "POST",
             body: JSON.stringify({ dataBase64 }),
           });
+          invalidateTrips();
           resolve(result);
         } catch (e) {
           reject(e);
@@ -120,10 +168,16 @@ export const api = {
   restoreBackupByName: (name: string) =>
     request<{ tripCount: number }>(`/backup/restore/${encodeURIComponent(name)}`, {
       method: "POST",
-    }),
+    })
+      .then((r) => {
+        invalidateTrips();
+        return r;
+      }),
 
   // ---- Trip Images ----
   getImages: (tripId: number) => request<TripImage[]>(`/trips/${tripId}/images`),
+  getYearPhotos: (year: string, limit = 8) =>
+    request<TripImage[]>(`/trips/photos?year=${encodeURIComponent(year)}&limit=${limit}`),
   uploadImage: (tripId: number, file: File): Promise<TripImage> =>
     new Promise((resolve, reject) => {
       const EXT_MIME: Record<string, string> = {
@@ -151,6 +205,7 @@ export const api = {
             method: "POST",
             body: JSON.stringify({ dataBase64, mime, originalName: file.name }),
           });
+          invalidateTrips();
           resolve(result);
         } catch (e) {
           reject(e);
@@ -159,5 +214,8 @@ export const api = {
       reader.readAsDataURL(file);
     }),
   deleteImage: (tripId: number, imageId: number) =>
-    request<void>(`/trips/${tripId}/images/${imageId}`, { method: "DELETE" }),
+    request<void>(`/trips/${tripId}/images/${imageId}`, { method: "DELETE" })
+      .then(() => {
+        invalidateTrips();
+      }),
 };

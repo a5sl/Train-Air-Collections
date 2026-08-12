@@ -3,6 +3,7 @@ import { Train, Plane, Clock, MapPin, Trash2, ChevronRight, Search, Upload, Data
 import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
 import type { Trip } from '../../../shared/types';
+import { useTrips } from '../hooks/useTrips';
 import Reveal from '../components/Reveal';
 import Segmented from '../components/Segmented';
 import TrajectorySVG from '../components/TrajectorySVG';
@@ -11,8 +12,7 @@ import { useToast } from '../components/fx/Toast';
 import TrainLoader from '../components/fx/TrainLoader';
 
 export default function TripList() {
-  const [trips, setTrips] = useState<Trip[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { trips, setTrips, loading, reload: loadTrips } = useTrips();
   const [importing, setImporting] = useState(false);
   const [seedMsg, setSeedMsg] = useState('');
   const [filter, setFilter] = useState<'all' | 'train' | 'flight'>(() => {
@@ -31,9 +31,6 @@ export default function TripList() {
   const [tearingId, setTearingId] = useState<number | null>(null);
 
   const updateFilter = (val: 'all' | 'train' | 'flight') => { setFilter(val); localStorage.setItem('tripListFilter', val); };
-
-  const loadTrips = () => { setLoading(true); api.getTrips().then(setTrips).catch(console.error).finally(() => setLoading(false)); };
-  useEffect(() => { loadTrips(); }, []);
 
   // Restore scroll position after returning from edit
   useEffect(() => {
@@ -205,10 +202,10 @@ export default function TripList() {
                               <span className="text-xs px-1.5 py-0.5 rounded bg-brand-tint text-brand">
                                 {trip.type === 'train' ? '铁轨' : '云路'}
                               </span>
-                              {(trip.images?.length ?? 0) > 0 && (
+                              {(trip.imageCount ?? 0) > 0 && (
                                 <span className="text-xs px-1.5 py-0.5 rounded bg-brand-tint text-brand flex items-center gap-0.5">
                                   <Camera className="w-3 h-3" />
-                                  {trip.images!.length}
+                                  {trip.imageCount}
                                 </span>
                               )}
                               <span className="text-sm text-content-secondary">{trip.operator}</span>

@@ -1,11 +1,11 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Train, Plane, Clock, MapPin, BarChart3, Plus,
   Star, Navigation, Calendar, DollarSign, BookOpen,
 } from 'lucide-react';
-import { api } from '../lib/api';
 import type { Trip } from '../../../shared/types';
+import { useTrips } from '../hooks/useTrips';
 import Reveal from '../components/Reveal';
 import TelemetryPanel from '../components/TelemetryPanel';
 import Ticket from '../components/Ticket';
@@ -31,13 +31,8 @@ function HighlightRow({ label, value }: { label: string; value: string }) {
 }
 
 export default function Dashboard() {
-  const [trips, setTrips] = useState<Trip[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { trips, loading } = useTrips();
   const navigate = useNavigate();
-
-  useEffect(() => {
-    api.getTrips().then(setTrips).catch(console.error).finally(() => setLoading(false));
-  }, []);
 
   const stats = useMemo(() => {
     const trainTrips = trips.filter((t) => t.type === 'train');

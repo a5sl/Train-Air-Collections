@@ -7,6 +7,7 @@ import {
 import type { LucideIcon } from "lucide-react";
 import { api } from "../lib/api";
 import type { Trip } from "../../../shared/types";
+import { useTrips } from "../hooks/useTrips";
 import CountUp from "../components/CountUp";
 import Reveal from "../components/Reveal";
 import TrainLoader from "../components/fx/TrainLoader";
@@ -39,7 +40,6 @@ interface YearStats {
   topOperator: { name: string; count: number } | null;
   longest: { label: string; km: number } | null;
   monthly: number[];
-  photos: { url: string; alt: string }[];
 }
 
 function computeStats(trips: Trip[]): YearStats {
@@ -55,7 +55,6 @@ function computeStats(trips: Trip[]): YearStats {
   const operators = new Map<string, number>();
   const monthly = new Array(12).fill(0) as number[];
   let longest: YearStats["longest"] = null;
-  const photos: { url: string; alt: string }[] = [];
 
   for (const t of trips) {
     if (t.type === "train") trainCount++;
@@ -76,9 +75,6 @@ function computeStats(trips: Trip[]): YearStats {
     const m = parseInt((t.departureDate || "").slice(5, 7), 10);
     if (m >= 1 && m <= 12) monthly[m - 1]++;
     if (km > (longest?.km ?? 0)) longest = { label: routeLabel, km };
-    for (const img of t.images ?? []) {
-      if (photos.length < 8) photos.push({ url: img.url, alt: img.originalName || routeLabel });
-    }
   }
 
   const totalKm = trainKm + flightKm;
@@ -110,7 +106,6 @@ function computeStats(trips: Trip[]): YearStats {
     topOperator: topOperatorEntry ? { name: topOperatorEntry[0], count: topOperatorEntry[1] } : null,
     longest,
     monthly,
-    photos,
   };
 }
 
@@ -229,19 +224,11 @@ export default function AnnualReport() {
   const { year: yearParam } = useParams<{ year?: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [allTrips, setAllTrips] = useState<Trip[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { trips: allTrips, loading } = useTrips();
   const [activeIdx, setActiveIdx] = useState(0);
+  const [yearPhotos, setYearPhotos] = useState<{ url: string; alt: string }[]>([]);
   const scrollerRef = useRef<HTMLDivElement>(null);
   const progressRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    api
-      .getTrips()
-      .then(setAllTrips)
-      .catch(() => toast("加载行旅数据失败", "err"))
-      .finally(() => setLoading(false));
-  }, []);
 
   const years = useMemo(() => {
     const set = new Set<string>();
@@ -265,6 +252,23 @@ export default function AnnualReport() {
   const maxMonthly = Math.max(...stats.monthly, 1);
   const days = Math.floor(stats.totalMinutes / 1440);
   const hours = Math.floor((stats.totalMinutes % 1440) / 60);
+
+  // Photos load lazily from a separate lightweight endpoint.
+  useEffect(() => {
+    if (!year) return;
+    let alive = true;
+    api
+      .getYearPhotos(year, 8)
+      .then((imgs) => {
+        if (alive) setYearPhotos(imgs.map((i) => ({ url: i.url, alt: i.originalName || "" })));
+      })
+      .catch(() => {
+        if (alive) setYearPhotos([]);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [year]);
 
   useEffect(() => {
     if (loading || years.length === 0) return;
@@ -436,20 +440,20 @@ export default function AnnualReport() {
       ),
     });
 
-    if (stats.photos.length > 0) {
+    if (yearPhotos.length > 0) {
       slides.push({
         id: "掠影",
         node: (
           <div className="space-y-6">
             <SlideTitle icon={Camera} title="途中掠影" en="Moments" />
             <div className="grid grid-cols-4 gap-2">
-              {stats.photos.map((p, i) => (
+              {yearPhotos.map((p, i) => (
                 <div key={i} className="aspect-square rounded-lg overflow-hidden bg-line">
                   <img src={p.url} alt={p.alt} loading="lazy" className="w-full h-full object-cover" onError={(e) => { e.currentTarget.style.visibility = "hidden"; }} />
                 </div>
               ))}
             </div>
-            <p className="text-xs text-content-tertiary text-center">辑得 {stats.photos.length} 帧</p>
+            <p className="text-xs text-content-tertiary text-center">辑得 {yearPhotos.length} 帧</p>
           </div>
         ),
       });

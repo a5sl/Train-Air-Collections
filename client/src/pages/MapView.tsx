@@ -2,8 +2,8 @@ import React, { useEffect, useState, useRef, useCallback, useReducer } from 'rea
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import { Train, Plane, Layers, ChevronDown, Filter, X } from 'lucide-react';
-import { api } from '../lib/api';
 import { wgs84ToGcj02 } from '../lib/coords';
+import { useTrips } from '../hooks/useTrips';
 import type { Trip } from '../../../shared/types';
 import { onAppearanceChange } from '../lib/theme';
 
@@ -159,8 +159,7 @@ function MapClickClear({ onClear, markerClickRef }: { onClear: () => void; marke
 export default function MapView() {
   const [, refreshPalette] = useReducer((x: number) => x + 1, 0);
   useEffect(() => onAppearanceChange(() => { C = readPalette(); refreshPalette(); }), []);
-  const [trips, setTrips] = useState<Trip[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { trips, loading } = useTrips();
   const [filterMode, setFilterMode] = useState<'all' | 'train' | 'flight'>('all');
   const [selectedCity, setSelectedCity] = useState<string | null>(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -172,8 +171,6 @@ export default function MapView() {
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, []);
-
-  useEffect(() => { api.getTrips().then(setTrips).catch(console.error).finally(() => setLoading(false)); }, []);
 
   const displayTrips = trips.filter((t) => {
     if (filterMode !== 'all' && t.type !== filterMode) return false;

@@ -1,7 +1,8 @@
 import { Hono } from "hono";
-import { eq, and, asc, max } from "drizzle-orm";
+import { eq, and, asc, desc, max, sql } from "drizzle-orm";
 import { tripImages, trips } from "../db/schema";
 import { getDbs, type Dbs } from "../db";
+import { cacheGet, cacheSet, cacheDelete } from "../cache";
 import { putUpload, deleteUpload } from "../r2";
 import { getUser } from "../auth";
 import type { AppEnv } from "../context";
@@ -69,6 +70,11 @@ router.get("/:tripId/images", async (c) => {
     const owner = getUser(c).email;
     const tripId = parseInt(c.req.param("tripId"));
     if (!Number.isFinite(tripId)) return c.json({ success: false, error: "Invalid trip id" }, 400);
+
+    const path = `/api/trips/${tripId}/images`;
+    const cached = await cacheGet(owner, path);
+    if (cached) return c.json(cached);
+
     if (!(await tripExists(db, owner, tripId))) return c.json({ success: false, error: "Trip not found" }, 404);
     const rows = await db.user
       .select()
@@ -76,10 +82,45 @@ router.get("/:tripId/images", async (c) => {
       .where(eq(tripImages.tripId, tripId))
       .orderBy(asc(tripImages.sortOrder), asc(tripImages.id))
       .all();
-    return c.json({ success: true, data: rows.map(imageToApi) });
+    const payload = { success: true, data: rows.map(imageToApi) };
+    await cacheSet(owner, path, payload, 60);
+    return c.json(payload);
   } catch (e) {
     console.error("GET images failed:", e);
     return c.json({ success: false, error: "Failed to load images" }, 500);
+  }
+});
+
+// GET /api/trips/photos?year=YYYY&limit=8 — recent photos across the year's trips
+router.get("/photos", async (c) => {
+  try {
+    const db = getDbs(c.env);
+    const owner = getUser(c).email;
+    const year = c.req.query("year") || "";
+    if (year && !/^\d{4}$/.test(year)) return c.json({ success: false, error: "Invalid year" }, 400);
+    const limit = Math.min(parseInt(c.req.query("limit") || "8", 10) || 8, 20);
+
+    const path = `/api/trips/photos?year=${year}&limit=${limit}`;
+    const cached = await cacheGet(owner, path);
+    if (cached) return c.json(cached);
+
+    const conditions: any[] = [eq(trips.owner, owner)];
+    if (year) conditions.push(sql`substr(${trips.departureDate}, 1, 4) = ${year}`);
+    const rows = await db.user
+      .select({ img: tripImages })
+      .from(tripImages)
+      .innerJoin(trips, eq(tripImages.tripId, trips.id))
+      .where(and(...conditions))
+      .orderBy(desc(trips.departureDate), asc(tripImages.sortOrder), asc(tripImages.id))
+      .limit(limit)
+      .all();
+
+    const payload = { success: true, data: rows.map((r) => imageToApi(r.img)) };
+    await cacheSet(owner, path, payload, 60);
+    return c.json(payload);
+  } catch (e) {
+    console.error("GET photos failed:", e);
+    return c.json({ success: false, error: "Failed to load photos" }, 500);
   }
 });
 
@@ -135,6 +176,7 @@ router.post("/:tripId/images", async (c) => {
       try { await deleteUpload(c.env, owner, filename); } catch { /* ignore */ }
       throw dbErr;
     }
+    await cacheDelete(owner, ["/api/trips", `/api/trips/${tripId}`, `/api/trips/${tripId}/images`]);
     return c.json({ success: true, data: imageToApi(row) }, 201);
   } catch (e) {
     console.error("Image upload failed:", e);
@@ -162,6 +204,7 @@ router.delete("/:tripId/images/:imageId", async (c) => {
     } catch {
       // file may already be gone; metadata removal is the source of truth
     }
+    await cacheDelete(owner, ["/api/trips", `/api/trips/${tripId}`, `/api/trips/${tripId}/images`]);
     return c.json({ success: true });
   } catch (e) {
     console.error("DELETE image failed:", e);

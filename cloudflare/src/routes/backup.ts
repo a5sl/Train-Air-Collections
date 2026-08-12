@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { getDbs } from "../db";
+import { cacheDelete } from "../cache";
 import {
   exportUserDb,
   restoreFromText,
@@ -59,6 +60,7 @@ router.post("/restore", async (c) => {
     const owner = getUser(c).email;
     const text = Buffer.from(b64, "base64").toString("utf8");
     const result = await restoreFromText(db, owner, text);
+    await cacheDelete(owner, ["/api/trips"]);
     return c.json({ success: true, data: result });
   } catch (e: any) {
     return c.json({ success: false, error: e.message }, 400);
@@ -71,6 +73,7 @@ router.post("/restore/:name", async (c) => {
     const db = getDbs(c.env);
     const owner = getUser(c).email;
     const result = await restoreBackupByName(c.env, db, owner, c.req.param("name"));
+    await cacheDelete(owner, ["/api/trips"]);
     return c.json({ success: true, data: result });
   } catch (e: any) {
     return c.json({ success: false, error: e.message }, 400);

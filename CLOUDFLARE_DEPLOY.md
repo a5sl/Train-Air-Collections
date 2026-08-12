@@ -119,14 +119,25 @@ npm run deploy -w cloudflare
 
 ## 四、配置 Cloudflare Access（访问控制）
 
-1. 打开 Cloudflare Zero Trust 仪表盘 → **Access → Applications → Add an application**。
-2. 选择 **Self-hosted**，添加你的域名（`*.workers.dev` 域名）。
-3. **Policy**：添加一条 `Allow` 规则，Include 选 **Emails** 等于共享此站点的人（如 `chopard2407@gmail.com`）。免费档最多 50 名用户。
-4. 记下应用的 **Application Audience (AUD) Tag** 与 **Team Name**（`<team>.cloudflareaccess.com`），填入 `cloudflare/wrangler.toml` 的 `[vars]` 和根目录 `.env`。
+登录方式有**邮箱验证码（OTP）**与 **Cloudflare 账号登录**两种，共用同一条 Allow 策略（命中任一即放行）。
 
-需要给某人开放时，只需在 Access 应用里把该邮箱加进 Allow 策略，不用改代码——每个人看到的都是自己邮箱名下的数据。
+1. **邮箱验证码（OTP）**：内置 IdP，零配置；用户输入任意邮箱收验证码即可登录。
+2. **Cloudflare 账号登录**：Zero Trust → **Integrations → Identity providers** → **Add new** → **Cloudflare**，建议勾选 **Restrict to account members**（只允许你账号的受邀成员登录，安全；本应用已开启）。
 
-> Access 是免费的（Zero Trust 免费档 ≤ 50 用户）。若不配置策略，Access 默认**拒绝所有请求**（含你自己），务必先加 Allow 策略再上线。
+**Allow 策略示例**（本应用当前配置）：
+- Include `Emails` = `chopard2407@gmail.com`（主账号，走 OTP 或 CF 账号皆可）
+- Include `Cloudflare Account Member` = 当前账号 ID（所有受邀成员都能用 CF 账号登录）
+
+> JSON 字段：`"include": [ {"email": {"email": "..."}}, {"cloudflare_account_member": {"account_id": "..."}} ]`
+> 免费的 Zero Trust 最多 50 名用户。
+
+**邀请新用户两种方式**
+- 走 **CF 账号登录**：把你账号 → **Manage Account → Members → Invite** 加对方邮箱，对方接受后用自己的 CF 账号登录；Allow 策略里的 `Cloudflare Account Member` 选择器自动覆盖他，无需改策略。
+- 走 **OTP**：直接在 Allow 策略里加一条 `Emails` 等于对方邮箱即可——对方只要有任意邮箱就能收验证码，无需 CF 账号。
+- 顺带注意成员角色：给家人/朋友建议用受限角色（如 Cloudflare Zero Trust 相关只读），避免 Administrator 级权限误操作账号资源。
+
+> **数据隔离与只读性**：每个登录者都只能看到自己邮箱（owner）名下的行程数据，互相不可见；需要"共享同一份数据"是另一需求（如 owner 组），本方案不支持。
+> 若不配置策略，Access 默认**拒绝所有请求**（含你自己），务必先加 Allow 策略再上线。
 
 
 ## 本地开发
@@ -164,6 +175,8 @@ curl "http://127.0.0.1:8787/cdn-cgi/local/scheduled"
 ## 常见问题
 
 - **站点打不开 / 403（Everyone is blocked）**：Access 策略为空或其 Allow 策略未包含你的邮箱，先在 Zero Trust 里加 Allow（Emails = 你的邮箱）。
+- **登录页没有「Cloudflare 登录」按钮**：确认 Zero Trust → Integrations → Identity providers 里存在 `cloudflare` 类型 IdP，且开启 Restrict to account members。
+- **朋友用 Cloudflare 账号登录后站点打开但列表是空的**：正常——数据按 owner（邮箱）隔离，新成员看不到别人的行程，自己名下没有数据。重新指派数据请用 `assign-owner.mjs`，或让他自己新建。
 - **`/api/*` 返回 401**：说明 Access JWT 未能通过校验——确认 `[vars].TEAM_NAME`、`POLICY_AUD` 与实际 Access 应用一致，且 `assets` 之外的 `/api` 确实由 Worker 处理。
 - **看不到历史数据**：升级自单用户版时忘了跑 `assign-owner.mjs`，trips 的 `owner` 为空，任何用户都查不到，先执行指派脚本。
 - **D1 报 `too many SQL variables`**：D1 单条查询有变量数量上限，列表接口已按 90 个/批分块，无需处理。

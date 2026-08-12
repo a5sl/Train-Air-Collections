@@ -2,6 +2,8 @@ import { Hono } from "hono";
 import { eq, sql, and } from "drizzle-orm";
 import { stations, airports } from "../db/schema";
 import { getDbs } from "../db";
+import { cacheGet, cacheSet } from "../cache";
+import { getUser } from "../auth";
 import type { AppEnv } from "../context";
 
 const router = new Hono<AppEnv>();
@@ -10,6 +12,13 @@ const router = new Hono<AppEnv>();
 router.get("/", async (c) => {
   try {
     const db = getDbs(c.env);
+    const owner = getUser(c).email;
+    const rawSearch = new URL(c.req.url).search;
+    const path = "/api/stations" + rawSearch;
+
+    const cached = await cacheGet(owner, path);
+    if (cached) return c.json(cached);
+
     const q = (c.req.query("q") || "").toLowerCase();
     const type = c.req.query("type");
 
@@ -35,15 +44,20 @@ router.get("/", async (c) => {
     if (stConditions.length > 0) stQuery = stQuery.where(and(...stConditions));
     if (apConditions.length > 0) apQuery = apQuery.where(and(...apConditions));
 
+    let data: any;
     if (type === "train_station") {
-      return c.json({ success: true, data: await stQuery.limit(20).all() });
+      data = await stQuery.limit(20).all();
+    } else if (type === "airport") {
+      data = await apQuery.limit(20).all();
+    } else {
+      const stResults = await stQuery.limit(10).all();
+      const apResults = await apQuery.limit(10).all();
+      data = [...stResults, ...apResults].slice(0, 20);
     }
-    if (type === "airport") {
-      return c.json({ success: true, data: await apQuery.limit(20).all() });
-    }
-    const stResults = await stQuery.limit(10).all();
-    const apResults = await apQuery.limit(10).all();
-    return c.json({ success: true, data: [...stResults, ...apResults].slice(0, 20) });
+
+    const payload = { success: true, data };
+    await cacheSet(owner, path, payload, 60);
+    return c.json(payload);
   } catch (err: any) {
     return c.json({ success: false, error: err.message }, 500);
   }
@@ -53,11 +67,18 @@ router.get("/", async (c) => {
 router.get("/:id", async (c) => {
   try {
     const db = getDbs(c.env);
+    const owner = getUser(c).email;
     const id = parseInt(c.req.param("id"));
+
+    const cached = await cacheGet(owner, `/api/stations/${id}`);
+    if (cached) return c.json(cached);
+
     let result = await db.seed.select().from(stations).where(eq(stations.id, id)).get();
     if (!result) result = await db.seed.select().from(airports).where(eq(airports.id, id)).get();
     if (!result) return c.json({ success: false, error: "Station not found" }, 404);
-    return c.json({ success: true, data: result });
+    const payload = { success: true, data: result };
+    await cacheSet(owner, `/api/stations/${id}`, payload, 300);
+    return c.json(payload);
   } catch (err: any) {
     return c.json({ success: false, error: err.message }, 500);
   }
