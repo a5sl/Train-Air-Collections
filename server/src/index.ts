@@ -86,7 +86,7 @@ app.get("/api/airlines/logo/:code", (req, res) => {
     return;
   }
   res.setHeader("Content-Type", "image/png");
-  res.setHeader("Cache-Control", "public, max-age=604800, immutable");
+  res.setHeader("Cache-Control", "public, max-age=86400");
   res.sendFile(file);
 });
 
@@ -108,7 +108,7 @@ app.get("/api/uploads/:filename", (req, res) => {
     res.status(404).json({ success: false, error: "Image not found" });
     return;
   }
-  res.setHeader("Cache-Control", "public, max-age=604800, immutable");
+  res.setHeader("Cache-Control", "public, max-age=86400");
   res.sendFile(file);
 });
 
