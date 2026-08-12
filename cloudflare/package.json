@@ -1,0 +1,31 @@
+{
+  "name": "cloudflare",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "typecheck": "tsc --noEmit",
+    "assets": "node scripts/copy-assets.mjs",
+    "db:init": "wrangler d1 migrations apply train-air-db --local",
+    "db:init:remote": "wrangler d1 migrations apply train-air-db --remote",
+    "db:seed": "node scripts/seed-d1.mjs",
+    "db:seed:remote": "node scripts/seed-d1.mjs --remote",
+    "db:migrate-user": "node scripts/migrate-user.mjs",
+    "db:migrate-user:remote": "node scripts/migrate-user.mjs --remote",
+    "assign-owner": "node scripts/assign-owner.mjs",
+    "r2:upload": "node scripts/upload-r2.mjs"
+  },
+  "dependencies": {
+    "drizzle-orm": "^0.38.0",
+    "hono": "^4.6.0",
+    "jose": "^6.2.8",
+    "tz-lookup": "^6.1.25"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250601.0",
+    "@types/node": "^22.10.0",
+    "typescript": "^5.6.0",
+    "wrangler": "^4.0.0"
+  }
+}
