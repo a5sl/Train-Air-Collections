@@ -7,6 +7,7 @@ import {
   restoreBackupByName,
   MAX_RESTORE_BASE64,
 } from "../backup";
+import { getUser } from "../auth";
 import type { AppEnv } from "../context";
 
 const router = new Hono<AppEnv>();
@@ -16,11 +17,12 @@ function stamp(d = new Date()): string {
   return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate());
 }
 
-// GET /api/backup — download the current user data (JSON backup)
+// GET /api/backup — download the current user's data (JSON backup)
 router.get("/", async (c) => {
   try {
     const db = getDbs(c.env);
-    const payload = await exportUserDb(db);
+    const owner = getUser(c).email;
+    const payload = await exportUserDb(db, owner);
     return new Response(payload, {
       headers: {
         "Content-Type": "application/json",
@@ -33,10 +35,11 @@ router.get("/", async (c) => {
   }
 });
 
-// GET /api/backup/list — list server-side automatic backups
+// GET /api/backup/list — list the current user's server-side automatic backups
 router.get("/list", async (c) => {
   try {
-    return c.json({ success: true, data: await listBackups(c.env) });
+    const owner = getUser(c).email;
+    return c.json({ success: true, data: await listBackups(c.env, owner) });
   } catch (e: any) {
     return c.json({ success: false, error: e.message }, 500);
   }
@@ -53,19 +56,21 @@ router.post("/restore", async (c) => {
       return c.json({ success: false, error: "Backup file too large" }, 413);
     }
     const db = getDbs(c.env);
+    const owner = getUser(c).email;
     const text = Buffer.from(b64, "base64").toString("utf8");
-    const result = await restoreFromText(db, text);
+    const result = await restoreFromText(db, owner, text);
     return c.json({ success: true, data: result });
   } catch (e: any) {
     return c.json({ success: false, error: e.message }, 400);
   }
 });
 
-// POST /api/backup/restore/:name — restore from a server-side automatic backup
+// POST /api/backup/restore/:name — restore from the current user's auto backup
 router.post("/restore/:name", async (c) => {
   try {
     const db = getDbs(c.env);
-    const result = await restoreBackupByName(c.env, db, c.req.param("name"));
+    const owner = getUser(c).email;
+    const result = await restoreBackupByName(c.env, db, owner, c.req.param("name"));
     return c.json({ success: true, data: result });
   } catch (e: any) {
     return c.json({ success: false, error: e.message }, 400);

@@ -34,6 +34,7 @@ export async function createTrip(dbs: Dbs, data: any): Promise<any> {
     seatNumber: data.seatNumber ?? null,
     seatClass: data.seatClass ?? null,
     notes: data.notes ?? null,
+    owner: data.owner ?? null,
     createdAt: now,
     updatedAt: now,
   }).returning().get();

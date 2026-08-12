@@ -46,7 +46,7 @@ export function getOperatorByCode(dbs: Dbs, code: string) {
 
 // --- Regular CSV Import (byAir import was dropped for the cloud build) ---
 
-export async function importTripsFromCSV(dbs: Dbs, csvText: string): Promise<{ imported: number; errors: string[] }> {
+export async function importTripsFromCSV(dbs: Dbs, csvText: string, owner: string): Promise<{ imported: number; errors: string[] }> {
   const errors: string[] = [];
   const lines = csvText.trim().split(/\r?\n/);
   if (lines.length < 2) return { imported: 0, errors: ["CSV must have a header row and at least one data row"] };
@@ -157,6 +157,7 @@ export async function importTripsFromCSV(dbs: Dbs, csvText: string): Promise<{ i
         cost: row["cost"] ? parseFloat(row["cost"]) : null,
         currency: row["currency"] || null, seatNumber: row["seatnumber"] || null,
         seatClass: row["seatclass"] || null, notes: row["notes"] || null,
+        owner,
       });
       imported++;
     } catch (e: any) {

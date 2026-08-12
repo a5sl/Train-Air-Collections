@@ -66,6 +66,7 @@ export const trips = sqliteTable("trips", {
   seatNumber: text("seat_number"),
   seatClass: text("seat_class"),
   notes: text("notes"),
+  owner: text("owner"),
   createdAt: text("created_at").default(sql`(datetime('now'))`).notNull(),
   updatedAt: text("updated_at").default(sql`(datetime('now'))`).notNull(),
 });

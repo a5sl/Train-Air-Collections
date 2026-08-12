@@ -7,12 +7,23 @@ async function request<T>(url: string, options?: RequestInit): Promise<T> {
     headers: { "Content-Type": "application/json" },
     ...options,
   });
+  if (res.status === 401) {
+    throw new AuthError();
+  }
   const json: ApiResponse<T> = await res.json();
   if (!json.success) throw new Error(json.error || "Request failed");
   return json.data as T;
 }
 
+export class AuthError extends Error {
+  constructor() {
+    super("Unauthorized");
+    this.name = "AuthError";
+  }
+}
+
 export const api = {
+  getMe: () => request<{ email: string }>("/me"),
   getTrips: () => request<Trip[]>("/trips"),
   getTrip: (id: number) => request<Trip>(`/trips/${id}`),
   createTrip: (data: Partial<Trip>) =>

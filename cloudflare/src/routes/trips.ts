@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { eq, desc, inArray, asc } from "drizzle-orm";
+import { eq, desc, inArray, asc, and } from "drizzle-orm";
 import { trips, stations, airports, tripImages } from "../db/schema";
 import { getDbs } from "../db";
 import { imageToApi } from "./images";
@@ -7,6 +7,7 @@ import { computeDuration, computeDistance } from "../geo";
 import { resolveStationTimezone } from "../timezone";
 import { importTripsFromCSV } from "../db/seed";
 import { deleteUpload } from "../r2";
+import { getUser } from "../auth";
 import type { AppEnv } from "../context";
 
 /** Normalize various date formats to YYYY-MM-DD. */
@@ -57,11 +58,14 @@ function chunk<T>(arr: T[], size: number): T[][] {
 
 const router = new Hono<AppEnv>();
 
-// GET /api/trips — returns all trips with station details
+// GET /api/trips — returns all trips for the current user with station details
 router.get("/", async (c) => {
   try {
     const db = getDbs(c.env);
-    const allTrips = await db.user.select().from(trips).orderBy(desc(trips.departureDate), desc(trips.id)).all();
+    const owner = getUser(c).email;
+    const allTrips = await db.user.select().from(trips)
+      .where(eq(trips.owner, owner))
+      .orderBy(desc(trips.departureDate), desc(trips.id)).all();
 
     const trainIds = new Set<number>();
     const flightIds = new Set<number>();
@@ -114,7 +118,9 @@ router.get("/", async (c) => {
 router.get("/:id", async (c) => {
   try {
     const db = getDbs(c.env);
-    const trip = await db.user.select().from(trips).where(eq(trips.id, parseInt(c.req.param("id")))).get() as any;
+    const owner = getUser(c).email;
+    const trip = await db.user.select().from(trips)
+      .where(and(eq(trips.id, parseInt(c.req.param("id"))), eq(trips.owner, owner))).get() as any;
     if (!trip) return c.json({ success: false, error: "Trip not found" }, 404);
 
     const depStation = trip.type === "flight" ? await db.seed.select().from(airports).where(eq(airports.id, trip.departureStationId)).get() : await db.seed.select().from(stations).where(eq(stations.id, trip.departureStationId)).get();
@@ -138,6 +144,7 @@ router.post("/", async (c) => {
   try {
     const db = getDbs(c.env);
     const data = await c.req.json();
+    const owner = getUser(c).email;
 
     const depTz = data.departureTimezone?.trim() || (await resolveStationTimezone(db, data.departureStationId, data.type));
     const arrTz = data.arrivalTimezone?.trim() || (await resolveStationTimezone(db, data.arrivalStationId, data.type));
@@ -165,7 +172,7 @@ router.post("/", async (c) => {
       distanceKm,
       cost: data.cost ?? null, currency: data.currency ?? null,
       seatNumber: data.seatNumber ?? null, seatClass: data.seatClass ?? null,
-      notes: data.notes ?? null, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+      notes: data.notes ?? null, owner, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
     }).returning().get();
     return c.json({ success: true, data: normalizeTrip(result) }, 201);
   } catch (err: any) {
@@ -177,8 +184,9 @@ router.post("/", async (c) => {
 router.put("/:id", async (c) => {
   try {
     const db = getDbs(c.env);
+    const owner = getUser(c).email;
     const id = parseInt(c.req.param("id"));
-    const existing = await db.user.select().from(trips).where(eq(trips.id, id)).get();
+    const existing = await db.user.select().from(trips).where(and(eq(trips.id, id), eq(trips.owner, owner))).get();
     if (!existing) return c.json({ success: false, error: "Trip not found" }, 404);
 
     const now = new Date().toISOString();
@@ -213,7 +221,8 @@ router.put("/:id", async (c) => {
       if (dist !== null) updateData.distanceKm = dist;
     }
 
-    const result = await db.user.update(trips).set(updateData).where(eq(trips.id, id)).returning().get();
+    const result = await db.user.update(trips).set(updateData)
+      .where(and(eq(trips.id, id), eq(trips.owner, owner))).returning().get();
     return c.json({ success: true, data: normalizeTrip(result) });
   } catch (err: any) {
     return c.json({ success: false, error: err.message }, 400);
@@ -224,16 +233,17 @@ router.put("/:id", async (c) => {
 router.delete("/:id", async (c) => {
   try {
     const db = getDbs(c.env);
+    const owner = getUser(c).email;
     const id = parseInt(c.req.param("id"));
-    const existing = await db.user.select().from(trips).where(eq(trips.id, id)).get();
+    const existing = await db.user.select().from(trips).where(and(eq(trips.id, id), eq(trips.owner, owner))).get();
     if (!existing) return c.json({ success: false, error: "Trip not found" }, 404);
     const imgs = await db.user.select().from(tripImages).where(eq(tripImages.tripId, id)).all() as any[];
-    await db.user.delete(trips).where(eq(trips.id, id)).run();
+    await db.user.delete(trips).where(and(eq(trips.id, id), eq(trips.owner, owner))).run();
     if (imgs.length > 0) {
       await db.user.delete(tripImages).where(eq(tripImages.tripId, id)).run();
     }
     for (const img of imgs) {
-      try { await deleteUpload(c.env, img.filename); } catch { /* ignore */ }
+      try { await deleteUpload(c.env, owner, img.filename); } catch { /* ignore */ }
     }
     return c.json({ success: true });
   } catch (err: any) {
@@ -245,9 +255,10 @@ router.delete("/:id", async (c) => {
 router.post("/import-csv", async (c) => {
   try {
     const db = getDbs(c.env);
+    const owner = getUser(c).email;
     const csvText = await c.req.text();
     if (!csvText) return c.json({ success: false, error: "No CSV data provided" }, 400);
-    const result = await importTripsFromCSV(db, csvText);
+    const result = await importTripsFromCSV(db, csvText, owner);
     return c.json({ success: true, data: result });
   } catch (err: any) {
     return c.json({ success: false, error: err.message }, 400);

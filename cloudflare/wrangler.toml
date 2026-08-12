@@ -3,6 +3,11 @@ main = "src/index.ts"
 compatibility_date = "2026-08-01"
 compatibility_flags = ["nodejs_compat"]
 
+# Cloudflare Access identity (used to validate the Access JWT in auth.ts)
+[vars]
+TEAM_NAME = "divine-boat-89b2"
+POLICY_AUD = "11185823e217889d7aa18a5569d593402f66ec317802c991fb05e013e26b0822"
+
 # Static frontend (built from ../client/dist via `npm run assets`)
 [assets]
 directory = "./assets"

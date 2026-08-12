@@ -3,6 +3,7 @@ import { eq, and, asc, max } from "drizzle-orm";
 import { tripImages, trips } from "../db/schema";
 import { getDbs, type Dbs } from "../db";
 import { putUpload, deleteUpload } from "../r2";
+import { getUser } from "../auth";
 import type { AppEnv } from "../context";
 
 const router = new Hono<AppEnv>();
@@ -57,17 +58,18 @@ export function imageToApi(row: any) {
   };
 }
 
-async function tripExists(dbs: Dbs, tripId: number): Promise<boolean> {
-  return !!(await dbs.user.select().from(trips).where(eq(trips.id, tripId)).get());
+async function tripExists(dbs: Dbs, owner: string, tripId: number): Promise<boolean> {
+  return !!(await dbs.user.select().from(trips).where(and(eq(trips.id, tripId), eq(trips.owner, owner))).get());
 }
 
 // GET /api/trips/:tripId/images
 router.get("/:tripId/images", async (c) => {
   try {
     const db = getDbs(c.env);
+    const owner = getUser(c).email;
     const tripId = parseInt(c.req.param("tripId"));
     if (!Number.isFinite(tripId)) return c.json({ success: false, error: "Invalid trip id" }, 400);
-    if (!(await tripExists(db, tripId))) return c.json({ success: false, error: "Trip not found" }, 404);
+    if (!(await tripExists(db, owner, tripId))) return c.json({ success: false, error: "Trip not found" }, 404);
     const rows = await db.user
       .select()
       .from(tripImages)
@@ -85,8 +87,9 @@ router.get("/:tripId/images", async (c) => {
 router.post("/:tripId/images", async (c) => {
   try {
     const db = getDbs(c.env);
+    const owner = getUser(c).email;
     const tripId = parseInt(c.req.param("tripId"));
-    if (!Number.isFinite(tripId) || !(await tripExists(db, tripId))) {
+    if (!Number.isFinite(tripId) || !(await tripExists(db, owner, tripId))) {
       return c.json({ success: false, error: "Trip not found" }, 404);
     }
     const body = await c.req.json();
@@ -107,7 +110,7 @@ router.post("/:tripId/images", async (c) => {
       return c.json({ success: false, error: "File content does not match declared image type" }, 400);
     }
     const filename = tripId + "-" + crypto.randomUUID() + "." + MIME_EXT[mime];
-    await putUpload(c.env, filename, buf, mime);
+    await putUpload(c.env, owner, filename, buf, mime);
     let row: any;
     try {
       const maxRow: any = await db.user
@@ -129,7 +132,7 @@ router.post("/:tripId/images", async (c) => {
         .returning()
         .get();
     } catch (dbErr) {
-      try { await deleteUpload(c.env, filename); } catch { /* ignore */ }
+      try { await deleteUpload(c.env, owner, filename); } catch { /* ignore */ }
       throw dbErr;
     }
     return c.json({ success: true, data: imageToApi(row) }, 201);
@@ -143,8 +146,10 @@ router.post("/:tripId/images", async (c) => {
 router.delete("/:tripId/images/:imageId", async (c) => {
   try {
     const db = getDbs(c.env);
+    const owner = getUser(c).email;
     const tripId = parseInt(c.req.param("tripId"));
     const imageId = parseInt(c.req.param("imageId"));
+    if (!(await tripExists(db, owner, tripId))) return c.json({ success: false, error: "Trip not found" }, 404);
     const row: any = await db.user
       .select()
       .from(tripImages)
@@ -153,7 +158,7 @@ router.delete("/:tripId/images/:imageId", async (c) => {
     if (!row) return c.json({ success: false, error: "Image not found" }, 404);
     await db.user.delete(tripImages).where(eq(tripImages.id, imageId)).run();
     try {
-      await deleteUpload(c.env, row.filename);
+      await deleteUpload(c.env, owner, row.filename);
     } catch {
       // file may already be gone; metadata removal is the source of truth
     }

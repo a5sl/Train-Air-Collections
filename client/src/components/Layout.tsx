@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { List, MapPin, LayoutDashboard } from 'lucide-react';
+import { List, MapPin, LayoutDashboard, UserRound } from 'lucide-react';
 import Seal from './Seal';
 import AppearancePopover from './AppearancePopover';
 import FxLayer from './fx/FxLayer';
@@ -10,6 +10,7 @@ import EasterTrain from './fx/EasterTrain';
 import ShortcutsOverlay from './fx/ShortcutsOverlay';
 import { getCurrentSolarTerm } from '../lib/solarTerm';
 import { useGlobalShortcuts } from '../lib/shortcuts';
+import { api } from '../lib/api';
 import { ParallaxBackdrop, HeaderProgress } from './fx/ParallaxBackdrop';
 
 const navItems = [
@@ -49,6 +50,32 @@ function SkyClock() {
           )
         )}
       </span>
+    </div>
+  );
+}
+
+function UserBadge() {
+  const [email, setEmail] = useState<string | null>(null);
+  const [failed, setFailed] = useState(false);
+
+  React.useEffect(() => {
+    let alive = true;
+    api.getMe().then((me) => {
+      if (alive) setEmail(me.email);
+    }).catch(() => {
+      if (alive) setFailed(true);
+    });
+    return () => { alive = false; };
+  }, []);
+
+  if (!email && !failed) return null;
+  return (
+    <div
+      className="hidden sm:flex items-center gap-1.5 px-2 py-1 rounded-full border border-line bg-surface-card-alt text-[11px] text-content-secondary max-w-[200px]"
+      title={email ? '当前登录' : '未登录'}
+    >
+      <UserRound className="w-3.5 h-3.5 shrink-0" />
+      <span className="truncate">{email ?? '未登录'}</span>
     </div>
   );
 }
@@ -114,6 +141,7 @@ export default function Layout() {
           </div>
           <div className="flex items-center gap-3">
             <SkyClock />
+            <UserBadge />
             <AppearancePopover />
           </div>
         </div>
