@@ -235,6 +235,16 @@ function FlightFace({ trip, isHero, className }: { trip: Trip; isHero: boolean; 
           </div>
         </div>
 
+        {trip.isCodeshare && trip.operatingCarrier && (
+          <div className="mb-2">
+            <span className="text-[10px] font-mono text-content-tertiary">
+              实际执飞: {trip.operatingCarrier}
+              {trip.operatingFlightNumber ? ` ${trip.operatingFlightNumber}` : ""}
+            </span>
+          </div>
+        )}
+
+
         <div className="flex items-center gap-3">
           <div className="flex-1 min-w-0">
             <p className={`font-mono font-bold tracking-tight text-content ${isHero ? 'text-2xl sm:text-4xl' : 'text-xl sm:text-2xl'}`}>{depCode}</p>

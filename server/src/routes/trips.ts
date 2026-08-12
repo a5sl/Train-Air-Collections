@@ -38,6 +38,9 @@ function normalizeTrip(raw: any) {
     vehicleType: raw.vehicleType ?? raw.vehicle_type ?? null,
     vehicleNumber: raw.vehicleNumber ?? raw.vehicle_number ?? null,
     carriageNumber: raw.carriageNumber ?? raw.carriage_number ?? null,
+    isCodeshare: !!(raw.isCodeshare ?? raw.is_codeshare ?? 0),
+    operatingCarrier: raw.operatingCarrier ?? raw.operating_carrier ?? null,
+    operatingFlightNumber: raw.operatingFlightNumber ?? raw.operating_flight_number ?? null,
     durationMinutes: raw.durationMinutes ?? raw.duration_minutes ?? null,
     distanceKm: raw.distanceKm ?? raw.distance_km ?? null,
     cost: raw.cost ?? null,
@@ -156,7 +159,9 @@ router.post("/", (req: Request, res: Response) => {
      })(),
       cost: data.cost ?? null, currency: data.currency ?? null,
       seatNumber: data.seatNumber ?? null, seatClass: data.seatClass ?? null,
-      notes: data.notes ?? null, createdAt: now, updatedAt: now,
+      notes: data.notes ?? null,
+      isCodeshare: data.isCodeshare ? 1 : 0, operatingCarrier: data.operatingCarrier ?? null,
+      operatingFlightNumber: data.operatingFlightNumber ?? null, createdAt: now, updatedAt: now,
     }).returning().get();
     saveUserDb();
     res.status(201).json({ success: true, data: normalizeTrip(result) });
@@ -175,10 +180,11 @@ router.put("/:id", (req: Request, res: Response) => {
     const now = new Date().toISOString();
     const data = req.body;
     const updateData: Record<string, any> = { updatedAt: now };
-    const fields = ["type","departureDate","arrivalDate","departureTime","arrivalTime","departureTimezone","arrivalTimezone","departureStationId","arrivalStationId","operator","trainFlightNumber","trainName","vehicleType","vehicleNumber","carriageNumber","durationMinutes","distanceKm","cost","currency","seatNumber","seatClass","notes"];
+    const fields = ["type","departureDate","arrivalDate","departureTime","arrivalTime","departureTimezone","arrivalTimezone","departureStationId","arrivalStationId","operator","trainFlightNumber","trainName","vehicleType","vehicleNumber","carriageNumber","durationMinutes","distanceKm","cost","currency","seatNumber","seatClass","isCodeshare","operatingCarrier","operatingFlightNumber","notes"];
     for (const f of fields) {
       if (data[f] !== undefined) updateData[f] = data[f];
     }
+    if (typeof updateData.isCodeshare === "boolean") updateData.isCodeshare = updateData.isCodeshare ? 1 : 0;
 
     // Always recompute duration from the full context (server-authoritative)
     const depDate = updateData.departureDate ?? existing.departureDate;
