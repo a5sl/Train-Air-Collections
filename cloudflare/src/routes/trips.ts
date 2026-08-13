@@ -37,6 +37,11 @@ function normalizeTrip(raw: any) {
     vehicleType: raw.vehicleType ?? raw.vehicle_type ?? null,
     vehicleNumber: raw.vehicleNumber ?? raw.vehicle_number ?? null,
     carriageNumber: raw.carriageNumber ?? raw.carriage_number ?? null,
+    isCodeshare: !!(raw.isCodeshare ?? raw.is_codeshare ?? 0),
+    operatingCarrier: raw.operatingCarrier ?? raw.operating_carrier ?? null,
+    operatingFlightNumber: raw.operatingFlightNumber ?? raw.operating_flight_number ?? null,
+    actualDepartureTime: raw.actualDepartureTime ?? raw.actual_departure_time ?? null,
+    actualArrivalTime: raw.actualArrivalTime ?? raw.actual_arrival_time ?? null,
     durationMinutes: raw.durationMinutes ?? raw.duration_minutes ?? null,
     distanceKm: raw.distanceKm ?? raw.distance_km ?? null,
     cost: raw.cost ?? null,
@@ -160,6 +165,8 @@ router.post("/", async (c) => {
     const result = await db.user.insert(trips).values({
       type: data.type, departureDate: normalizeDate(data.departureDate), arrivalDate: normalizeDate(data.arrivalDate),
       departureTime: data.departureTime, arrivalTime: data.arrivalTime,
+      actualDepartureTime: data.actualDepartureTime ?? null,
+      actualArrivalTime: data.actualArrivalTime ?? null,
       departureTimezone: depTz, arrivalTimezone: arrTz,
       departureStationId: data.departureStationId, arrivalStationId: data.arrivalStationId,
       operator: data.operator, trainFlightNumber: data.trainFlightNumber,
@@ -172,7 +179,11 @@ router.post("/", async (c) => {
       distanceKm,
       cost: data.cost ?? null, currency: data.currency ?? null,
       seatNumber: data.seatNumber ?? null, seatClass: data.seatClass ?? null,
-      notes: data.notes ?? null, owner, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+      notes: data.notes ?? null,
+      isCodeshare: data.isCodeshare ? 1 : 0,
+      operatingCarrier: data.operatingCarrier ?? null,
+      operatingFlightNumber: data.operatingFlightNumber ?? null,
+      owner, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
     }).returning().get();
     return c.json({ success: true, data: normalizeTrip(result) }, 201);
   } catch (err: any) {
@@ -192,10 +203,11 @@ router.put("/:id", async (c) => {
     const now = new Date().toISOString();
     const data = await c.req.json();
     const updateData: Record<string, any> = { updatedAt: now };
-    const fields = ["type","departureDate","arrivalDate","departureTime","arrivalTime","departureTimezone","arrivalTimezone","departureStationId","arrivalStationId","operator","trainFlightNumber","trainName","vehicleType","vehicleNumber","carriageNumber","durationMinutes","distanceKm","cost","currency","seatNumber","seatClass","notes"];
+    const fields = ["type","departureDate","arrivalDate","departureTime","arrivalTime","actualDepartureTime","actualArrivalTime","departureTimezone","arrivalTimezone","departureStationId","arrivalStationId","operator","trainFlightNumber","trainName","vehicleType","vehicleNumber","carriageNumber","durationMinutes","distanceKm","cost","currency","seatNumber","seatClass","isCodeshare","operatingCarrier","operatingFlightNumber","notes"];
     for (const f of fields) {
       if (data[f] !== undefined) updateData[f] = data[f];
     }
+    if (typeof updateData.isCodeshare === "boolean") updateData.isCodeshare = updateData.isCodeshare ? 1 : 0;
 
     const depDate = updateData.departureDate ?? existing.departureDate;
     const arrDate = updateData.arrivalDate ?? existing.arrivalDate;

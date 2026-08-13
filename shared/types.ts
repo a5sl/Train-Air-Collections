@@ -33,8 +33,10 @@ export interface Trip {
   type: TransportType;
   departureDate: string;        // "2026-07-18"
   arrivalDate: string;          // "2026-07-18"
-  departureTime: string;        // "14:30"
-  arrivalTime: string;          // "16:45"
+  departureTime: string;        // "14:30"（计划 Plan）
+  arrivalTime: string;          // "16:45"（计划 Plan）
+  actualDepartureTime: string | null; // 实际出发 "14:52"，null = 未记录
+  actualArrivalTime: string | null;   // 实际抵达 "17:10"，null = 未记录
   departureTimezone: string;    // "Asia/Shanghai"
   arrivalTimezone: string;      // "Asia/Tokyo"
   departureStationId: number;
@@ -69,6 +71,8 @@ export interface TripCreateInput {
   arrivalDate: string;
   departureTime: string;
   arrivalTime: string;
+  actualDepartureTime?: string | null;
+  actualArrivalTime?: string | null;
   departureTimezone: string;
   arrivalTimezone: string;
   departureStationId: number;

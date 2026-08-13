@@ -28,6 +28,8 @@ function normalizeTrip(raw: any) {
     arrivalDate: raw.arrivalDate ?? raw.arrival_date ?? "",
     departureTime: raw.departureTime ?? raw.departure_time ?? "",
     arrivalTime: raw.arrivalTime ?? raw.arrival_time ?? "",
+    actualDepartureTime: raw.actualDepartureTime ?? raw.actual_departure_time ?? null,
+    actualArrivalTime: raw.actualArrivalTime ?? raw.actual_arrival_time ?? null,
     departureTimezone: raw.departureTimezone ?? raw.departure_timezone ?? "",
     arrivalTimezone: raw.arrivalTimezone ?? raw.arrival_timezone ?? "",
     departureStationId: raw.departureStationId ?? raw.departure_station_id ?? 0,
@@ -142,6 +144,8 @@ router.post("/", (req: Request, res: Response) => {
     const result = userDb.insert(trips).values({
       type: data.type, departureDate: normalizeDate(data.departureDate), arrivalDate: normalizeDate(data.arrivalDate),
       departureTime: data.departureTime, arrivalTime: data.arrivalTime,
+      actualDepartureTime: data.actualDepartureTime ?? null,
+      actualArrivalTime: data.actualArrivalTime ?? null,
       departureTimezone: depTz, arrivalTimezone: arrTz,
       departureStationId: data.departureStationId, arrivalStationId: data.arrivalStationId,
       operator: data.operator, trainFlightNumber: data.trainFlightNumber,
@@ -180,7 +184,7 @@ router.put("/:id", (req: Request, res: Response) => {
     const now = new Date().toISOString();
     const data = req.body;
     const updateData: Record<string, any> = { updatedAt: now };
-    const fields = ["type","departureDate","arrivalDate","departureTime","arrivalTime","departureTimezone","arrivalTimezone","departureStationId","arrivalStationId","operator","trainFlightNumber","trainName","vehicleType","vehicleNumber","carriageNumber","durationMinutes","distanceKm","cost","currency","seatNumber","seatClass","isCodeshare","operatingCarrier","operatingFlightNumber","notes"];
+    const fields = ["type","departureDate","arrivalDate","departureTime","arrivalTime","actualDepartureTime","actualArrivalTime","departureTimezone","arrivalTimezone","departureStationId","arrivalStationId","operator","trainFlightNumber","trainName","vehicleType","vehicleNumber","carriageNumber","durationMinutes","distanceKm","cost","currency","seatNumber","seatClass","isCodeshare","operatingCarrier","operatingFlightNumber","notes"];
     for (const f of fields) {
       if (data[f] !== undefined) updateData[f] = data[f];
     }

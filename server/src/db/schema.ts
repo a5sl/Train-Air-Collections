@@ -49,6 +49,8 @@ export const trips = sqliteTable("trips", {
   arrivalDate: text("arrival_date").notNull(),
   departureTime: text("departure_time").notNull(),
   arrivalTime: text("arrival_time").notNull(),
+  actualDepartureTime: text("actual_departure_time"),
+  actualArrivalTime: text("actual_arrival_time"),
   departureTimezone: text("departure_timezone").notNull(),
   arrivalTimezone: text("arrival_timezone").notNull(),
   departureStationId: integer("departure_station_id").notNull(),

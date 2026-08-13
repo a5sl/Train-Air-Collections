@@ -27,6 +27,8 @@ interface FormData {
   arrivalDate: string;
   departureTime: string;
   arrivalTime: string;
+  actualDepartureTime: string;
+  actualArrivalTime: string;
   departureStation: Station | null;
   arrivalStation: Station | null;
   operator: string;
@@ -279,6 +281,8 @@ export default function EditTrip() {
       arrivalDate: normalizeDate(trip.arrivalDate),
           departureTime: trip.departureTime,
           arrivalTime: trip.arrivalTime,
+          actualDepartureTime: trip.actualDepartureTime || "",
+          actualArrivalTime: trip.actualArrivalTime || "",
           
           departureStation: trip.departureStation || null,
           arrivalStation: trip.arrivalStation || null,
@@ -424,6 +428,8 @@ export default function EditTrip() {
         arrivalDate: form.arrivalDate,
         departureTime: form.departureTime,
         arrivalTime: form.arrivalTime,
+        actualDepartureTime: form.type === "flight" ? form.actualDepartureTime || null : null,
+        actualArrivalTime: form.type === "flight" ? form.actualArrivalTime || null : null,
         departureTimezone: form.departureStation?.timezone || "",
         arrivalTimezone: form.arrivalStation?.timezone || "",
         departureStationId: form.departureStation.id,
@@ -514,7 +520,7 @@ export default function EditTrip() {
                 onChange={v => update({ departureDate: v })} required />
             </div>
             <div>
-              <label className="label-text">出发时间 *</label>
+              <label className="label-text">{form.type === "flight" ? "计划起飞时间" : "出发时间"} *</label>
               <input type="time" className="input-field" value={form.departureTime}
                 onChange={e => update({ departureTime: e.target.value })} required />
             </div>
@@ -543,7 +549,7 @@ export default function EditTrip() {
               <p className="text-xs text-content-secondary mt-1">默认与出发日期相同，过夜旅途可修改</p>
             </div>
             <div>
-              <label className="label-text">到达时间 *</label>
+              <label className="label-text">{form.type === "flight" ? "计划抵达时间" : "到达时间"} *</label>
               <input type="time" className="input-field" value={form.arrivalTime}
                 onChange={e => update({ arrivalTime: e.target.value })} required />
             </div>
@@ -563,6 +569,24 @@ export default function EditTrip() {
               </div>
             </div>
           </div>
+
+          {form.type === "flight" && (
+            <div className="space-y-1">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="label-text">实际起飞时间</label>
+                  <input type="time" className="input-field" value={form.actualDepartureTime}
+                    onChange={e => update({ actualDepartureTime: e.target.value })} />
+                </div>
+                <div>
+                  <label className="label-text">实际抵达时间</label>
+                  <input type="time" className="input-field" value={form.actualArrivalTime}
+                    onChange={e => update({ actualArrivalTime: e.target.value })} />
+                </div>
+              </div>
+              <p className="text-xs text-content-secondary">选填：留空表示未记录实际时间</p>
+            </div>
+          )}
 
           {form.durationMinutes !== "" && (
             <p className="text-xs text-content-tertiary">

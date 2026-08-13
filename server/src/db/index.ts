@@ -20,6 +20,31 @@ let seedSqlDb: any;
 let userSqlDb: any;
 let SQLjs: any;
 
+/** Ensure the trips table carries every column added by later updates.
+ *  Runs at startup and again after a backup restore, so restoring an
+ *  older backup never leaves the live database missing columns. */
+function ensureTripColumns() {
+  if (!userSqlDb) return;
+  const colsRes = userSqlDb.exec("PRAGMA table_info(trips)");
+  const cols = new Set((colsRes[0]?.values ?? []).map((r: any[]) => String(r[1])));
+  const additions: Array<[string, string]> = [
+    ["is_codeshare", "INTEGER DEFAULT 0 NOT NULL"],
+    ["operating_carrier", "TEXT"],
+    ["operating_flight_number", "TEXT"],
+    ["actual_departure_time", "TEXT"],
+    ["actual_arrival_time", "TEXT"],
+  ];
+  let changed = false;
+  for (const [name, def] of additions) {
+    if (!cols.has(name)) {
+      console.log("Migrating trips: adding " + name + " column...");
+      userSqlDb.run("ALTER TABLE trips ADD COLUMN " + name + " " + def);
+      changed = true;
+    }
+  }
+  if (changed) saveUserDb();
+}
+
 export async function initDb() {
   const SQL = await initSqlJs();
   SQLjs = SQL;
@@ -78,6 +103,8 @@ export async function initDb() {
         is_codeshare INTEGER DEFAULT 0 NOT NULL,
         operating_carrier TEXT,
         operating_flight_number TEXT,
+        actual_departure_time TEXT,
+        actual_arrival_time TEXT,
         created_at TEXT DEFAULT (datetime('now')) NOT NULL,
         updated_at TEXT DEFAULT (datetime('now')) NOT NULL
       )
@@ -85,24 +112,8 @@ export async function initDb() {
     saveUserDb();
   }
 
-  // Migrate existing trips table: add codeshare columns if missing
-  const tripsCols = userSqlDb.exec("PRAGMA table_info(trips)");
-  const tripColNames = new Set((tripsCols[0]?.values ?? []).map((r: any[]) => String(r[1])));
-  if (!tripColNames.has("is_codeshare")) {
-    console.log("Migrating trips: adding is_codeshare column...");
-    userSqlDb.run("ALTER TABLE trips ADD COLUMN is_codeshare INTEGER DEFAULT 0 NOT NULL");
-  }
-  if (!tripColNames.has("operating_carrier")) {
-    console.log("Migrating trips: adding operating_carrier column...");
-    userSqlDb.run("ALTER TABLE trips ADD COLUMN operating_carrier TEXT");
-  }
-  if (!tripColNames.has("operating_flight_number")) {
-    console.log("Migrating trips: adding operating_flight_number column...");
-    userSqlDb.run("ALTER TABLE trips ADD COLUMN operating_flight_number TEXT");
-  }
-  if (!tripColNames.has("is_codeshare") || !tripColNames.has("operating_carrier") || !tripColNames.has("operating_flight_number")) {
-    saveUserDb();
-  }
+  // Migrate existing trips table: add any columns introduced by later updates
+  ensureTripColumns();
 
   // Create trip_images table if it doesn't exist
   const imagesTableExists = userSqlDb.exec(
@@ -272,6 +283,7 @@ export function restoreUserDbFromBuffer(buf: Buffer): { tripCount: number } {
     userSqlDb = restored;
     restored = null; // ownership transferred to the live instance
     userDb = drizzle(userSqlDb, { schema: userSchema });
+    ensureTripColumns();
     saveUserDb();
     const removedImages = reconcileTripImages();
     if (removedImages > 0) console.log("Restore: dropped " + removedImages + " image row(s) with missing files");

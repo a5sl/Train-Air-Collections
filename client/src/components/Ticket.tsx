@@ -303,22 +303,100 @@ function FlightFace({ trip, isHero, className }: { trip: Trip; isHero: boolean; 
   );
 }
 
-/* ---------------- 背面：行迹图 ---------------- */
+/* ---------------- 背面：行程详单 ---------------- */
+
+/** 实际时间相对计划时间的偏差（同日约定，跨午夜按 ±12 小时内归一）。 */
+function timeDiffInfo(scheduled: string, actual: string): { label: string; late: boolean } | null {
+  const toMin = (t: string) => {
+    const m = t.match(/^(\d{1,2}):(\d{2})$/);
+    return m ? parseInt(m[1]) * 60 + parseInt(m[2]) : null;
+  };
+  const s = toMin(scheduled);
+  const a = toMin(actual);
+  if (s === null || a === null) return null;
+  let diff = a - s;
+  if (diff > 720) diff -= 1440;
+  if (diff < -720) diff += 1440;
+  if (diff === 0) return { label: '准点', late: false };
+  return diff > 0 ? { label: `延误 ${diff}m`, late: true } : { label: `提前 ${-diff}m`, late: false };
+}
+
+function BackField({ zh, en, value, tag, late }: { zh: string; en: string; value: string; tag?: string; late?: boolean }) {
+  return (
+    <div className="min-w-0">
+      <p className="text-[8px] font-mono uppercase tracking-[0.14em] text-content-tertiary whitespace-nowrap truncate">
+        {en}
+        <span className="ml-1 font-sans tracking-normal">{zh}</span>
+      </p>
+      <p className="font-mono text-[13px] font-semibold text-content truncate">
+        {value}
+        {tag && (
+          <span className={`ml-1.5 text-[10px] font-medium ${late ? 'text-red-500' : 'text-emerald-500'}`}>{tag}</span>
+        )}
+      </p>
+    </div>
+  );
+}
 
 function TicketBack({ trip }: { trip: Trip }) {
   const isTrain = trip.type === 'train';
+  const accent = isTrain ? 'rgb(var(--c-train-line))' : 'rgb(var(--c-flight-line))';
+
+  type BackItem = { zh: string; en: string; value: string; tag?: string; late?: boolean };
+  const items: BackItem[] = [];
+  if (isTrain) {
+    if (trip.vehicleNumber) items.push({ zh: '动车组号', en: 'TRAINSET', value: trip.vehicleNumber });
+    if (trip.vehicleType) items.push({ zh: '车型', en: 'MODEL', value: trip.vehicleType });
+    if (trip.trainName) items.push({ zh: '列车名', en: 'NAME', value: trip.trainName });
+    if (trip.carriageNumber) items.push({ zh: '车厢', en: 'CAR', value: trip.carriageNumber });
+    if (trip.seatNumber) items.push({ zh: '座位', en: 'SEAT', value: trip.seatNumber });
+    if (trip.seatClass) items.push({ zh: '席别', en: 'CLASS', value: trip.seatClass });
+  } else {
+    if (trip.vehicleNumber) items.push({ zh: '注册号', en: 'REG', value: trip.vehicleNumber });
+    if (trip.vehicleType) items.push({ zh: '机型', en: 'TYPE', value: trip.vehicleType });
+    if (trip.seatNumber) items.push({ zh: '座位', en: 'SEAT', value: trip.seatNumber });
+    if (trip.seatClass) items.push({ zh: '舱位', en: 'CLASS', value: trip.seatClass });
+    if (trip.isCodeshare && trip.operatingCarrier) items.push({ zh: '实际承运', en: 'OP BY', value: trip.operatingCarrier });
+    if (trip.isCodeshare && trip.operatingFlightNumber) items.push({ zh: '承运航班', en: 'OP NO', value: trip.operatingFlightNumber });
+  }
+  if (trip.actualDepartureTime) {
+    const d = timeDiffInfo(trip.departureTime, trip.actualDepartureTime);
+    items.push({ zh: isTrain ? '实际发车' : '实际起飞', en: 'ACT DEP', value: trip.actualDepartureTime, tag: d?.label, late: d?.late });
+  }
+  if (trip.actualArrivalTime) {
+    const d = timeDiffInfo(trip.arrivalTime, trip.actualArrivalTime);
+    items.push({ zh: '实际抵达', en: 'ACT ARR', value: trip.actualArrivalTime, tag: d?.label, late: d?.late });
+  }
+
   return (
     <div
-      className="absolute inset-0 rounded-xl border border-brand/30 bg-surface-card p-6 flex flex-col items-center justify-center"
+      className="absolute inset-0 rounded-xl border border-brand/30 bg-surface-card overflow-hidden"
       style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
     >
-      <p className="text-[10px] font-mono uppercase tracking-[0.25em] text-content-tertiary mb-3">
-        行迹图 · {isTrain ? 'RAIL ROUTE' : 'FLIGHT ROUTE'}
-      </p>
-      <TrajectorySVG width={240} height={80} distance={trip.distanceKm} color={isTrain ? 'rgb(var(--c-train-line))' : 'rgb(var(--c-flight-line))'} />
-      {trip.notes && (
-        <p className="mt-4 text-sm text-content-secondary text-center max-w-xs font-display">{trip.notes}</p>
-      )}
+      <span className="absolute left-0 top-0 bottom-0 w-1.5" style={{ background: accent }} aria-hidden="true" />
+      <PaperGrid />
+      <div className="relative z-10 h-full flex flex-col px-5 py-4 pl-6">
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-[10px] font-mono uppercase tracking-[0.25em] text-content-tertiary">行程详单 · MANIFEST</p>
+          <p className="text-[9px] font-mono tracking-[0.2em] text-content-tertiary">NO.{String(trip.id).padStart(6, '0')}</p>
+        </div>
+
+        <div className="flex justify-center mt-2">
+          <TrajectorySVG width={200} height={52} distance={trip.distanceKm} color={accent} />
+        </div>
+
+        {items.length > 0 && (
+          <div className="grid grid-cols-3 gap-x-3 gap-y-2 mt-3">
+            {items.slice(0, 9).map((it) => (
+              <BackField key={it.en + it.zh} zh={it.zh} en={it.en} value={it.value} tag={it.tag} late={it.late} />
+            ))}
+          </div>
+        )}
+
+        {trip.notes && (
+          <p className="mt-auto pt-2 text-xs text-content-secondary font-display line-clamp-2">{trip.notes}</p>
+        )}
+      </div>
     </div>
   );
 }
@@ -344,6 +422,15 @@ export default function Ticket({
   const arrName = trip.arrivalStation?.name || '?';
 
   const hoverFlip = isHero && !prefersReducedMotion() && !isCoarsePointer();
+
+  // 触屏设备：第一次轻点翻到背面，再次轻点进入详情
+  const handleActivate = () => {
+    if (isCoarsePointer() && !flipped) {
+      setFlipped(true);
+      return;
+    }
+    onClick?.();
+  };
 
   const front = isTrain ? (
     <TrainFace trip={trip} isHero={isHero} className={className} />
@@ -371,10 +458,10 @@ export default function Ticket({
       style={{ perspective: '1200px' }}
       onMouseEnter={() => hoverFlip && setFlipped(true)}
       onMouseLeave={() => hoverFlip && setFlipped(false)}
-      onClick={onClick}
+      onClick={handleActivate}
       role={onClick ? 'button' : undefined}
       tabIndex={onClick ? 0 : undefined}
-      onKeyDown={onClick ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } } : undefined}
+      onKeyDown={onClick ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleActivate(); } } : undefined}
       aria-label={`${isTrain ? '火车票' : '登机牌'}：${depName} 至 ${arrName}，回车查看详情`}
     >
       <div
