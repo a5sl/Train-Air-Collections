@@ -583,17 +583,6 @@
   background: rgb(var(--c-surface));
 }
 
-.trajectory-path {
-  stroke-dasharray: 1000;
-  stroke-dashoffset: 1000;
-}
-.trajectory-path.animate {
-  animation: draw-line calc(0.9s / var(--motion-speed)) var(--ease-ink) forwards;
-}
-@keyframes draw-line {
-  to { stroke-dashoffset: 0; }
-}
-
 .vertical-text {
   writing-mode: vertical-rl;
   text-orientation: upright;

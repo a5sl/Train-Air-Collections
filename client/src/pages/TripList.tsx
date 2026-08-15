@@ -5,7 +5,6 @@ import { api } from '../lib/api';
 import type { Trip } from '../../../shared/types';
 import Reveal from '../components/Reveal';
 import Segmented from '../components/Segmented';
-import TrajectorySVG from '../components/TrajectorySVG';
 import BackupPopover from '../components/BackupPopover';
 import { useToast } from '../components/fx/Toast';
 import TrainLoader from '../components/fx/TrainLoader';

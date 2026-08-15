@@ -342,6 +342,9 @@ function TicketBack({ trip }: { trip: Trip }) {
   const isTrain = trip.type === 'train';
   const accent = isTrain ? 'rgb(var(--c-train-line))' : 'rgb(var(--c-flight-line))';
 
+  const depCode = (trip.departureStation?.code || '').split('|')[0] || (trip.departureStation?.name || '').slice(0, 3);
+  const arrCode = (trip.arrivalStation?.code || '').split('|')[0] || (trip.arrivalStation?.name || '').slice(0, 3);
+
   type BackItem = { zh: string; en: string; value: string; tag?: string; late?: boolean };
   const items: BackItem[] = [];
   if (isTrain) {
@@ -382,7 +385,16 @@ function TicketBack({ trip }: { trip: Trip }) {
         </div>
 
         <div className="flex justify-center mt-2">
-          <TrajectorySVG width={200} height={52} distance={trip.distanceKm} color={accent} />
+          <TrajectorySVG
+            width={240}
+            height={64}
+            distance={trip.distanceKm}
+            color={accent}
+            dep={{ lat: trip.departureStation?.latitude ?? null, lng: trip.departureStation?.longitude ?? null }}
+            arr={{ lat: trip.arrivalStation?.latitude ?? null, lng: trip.arrivalStation?.longitude ?? null }}
+            depCode={depCode}
+            arrCode={arrCode}
+          />
         </div>
 
         {items.length > 0 && (
