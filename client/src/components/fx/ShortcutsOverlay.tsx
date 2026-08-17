@@ -5,6 +5,7 @@ const ROWS: Array<{ keys: string[]; label: string }> = [
   { keys: ['G', 'D'], label: '前往概览' },
   { keys: ['G', 'T'], label: '前往行旅全录' },
   { keys: ['G', 'M'], label: '前往舆图' },
+  { keys: ['G', 'C'], label: '前往收藏图鉴' },
   { keys: ['G', 'A'], label: '启程录新程' },
   { keys: ['/'], label: '聚焦搜索' },
   { keys: ['?'], label: '开关本须知' },

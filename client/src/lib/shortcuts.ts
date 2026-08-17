@@ -57,6 +57,7 @@ export function useGlobalShortcuts(h: ShortcutHandlers) {
         if (key === 'd') { ref.current.onNavigate('/'); return; }
         if (key === 't') { ref.current.onNavigate('/trips'); return; }
         if (key === 'm') { ref.current.onNavigate('/map'); return; }
+        if (key === 'c') { ref.current.onNavigate('/catalog'); return; }
         if (key === 'a') { ref.current.onNavigate('/add'); return; }
       }
     };

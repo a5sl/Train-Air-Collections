@@ -6,6 +6,7 @@ import EditTrip from "./pages/EditTrip";
 import TripList from "./pages/TripList";
 import MapView from "./pages/MapView";
 import AnnualReport from "./pages/AnnualReport";
+import Catalog from "./pages/Catalog";
 import { ToastProvider } from "./components/fx/Toast";
 
 export default function App() {
@@ -18,6 +19,7 @@ export default function App() {
           <Route path="edit/:id" element={<EditTrip />} />
           <Route path="trips" element={<TripList />} />
           <Route path="map" element={<MapView />} />
+          <Route path="catalog" element={<Catalog />} />
           <Route path="report/:year?" element={<AnnualReport />} />
         </Route>
       </Routes>

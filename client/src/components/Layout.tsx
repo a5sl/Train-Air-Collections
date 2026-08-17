@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { List, MapPin, LayoutDashboard, UserRound } from 'lucide-react';
+import { List, MapPin, LayoutDashboard, UserRound, BookOpen } from 'lucide-react';
 import Seal from './Seal';
 import AppearancePopover from './AppearancePopover';
 import FxLayer from './fx/FxLayer';
@@ -18,6 +18,7 @@ const navItems = [
   { to: '/add', icon: List, label: '录程' },
   { to: '/trips', icon: List, label: '行旅全录' },
   { to: '/map', icon: MapPin, label: '舆图' },
+  { to: '/catalog', icon: BookOpen, label: '图鉴' },
 ];
 
 function SkyClock() {
